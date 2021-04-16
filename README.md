@@ -1,5 +1,5 @@
 # Networking
-High performance backend for fully encrypted message based TCP networking.
+High performance backend for message based TCP networking.
 
 How to use:
  + Refrence Networking.dll in your project.
