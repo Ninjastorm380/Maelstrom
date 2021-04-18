@@ -79,15 +79,15 @@
         Dim PRSERNG As New Random(PSnapshot.Second)
         Dim PRPORTRNG As New Random(REndpoint.Port)
 
-        Dim PMAXPORTION As Double = Int32.MaxValue / 7
+        Dim PMAXPORTION As Integer = CInt(Math.Floor(Int32.MaxValue / 7))
 
-        Dim PReaderRNGInitSeed As Integer = PRYERNG.Next(CInt(Math.Floor(PMAXPORTION))) +
-                                            PRMORNG.Next(CInt(Math.Floor(PMAXPORTION))) +
-                                            PRDARNG.Next(CInt(Math.Floor(PMAXPORTION))) +
-                                            PRHORNG.Next(CInt(Math.Floor(PMAXPORTION))) +
-                                            PRMIRNG.Next(CInt(Math.Floor(PMAXPORTION))) +
-                                            PRSERNG.Next(CInt(Math.Floor(PMAXPORTION))) +
-                                            PRPORTRNG.Next(CInt(Math.Floor(PMAXPORTION)))
+        Dim PReaderRNGInitSeed As Integer = PRYERNG.Next(PMAXPORTION) +
+                                            PRMORNG.Next(PMAXPORTION) +
+                                            PRDARNG.Next(PMAXPORTION) +
+                                            PRHORNG.Next(PMAXPORTION) +
+                                            PRMIRNG.Next(PMAXPORTION) +
+                                            PRSERNG.Next(PMAXPORTION) +
+                                            PRPORTRNG.Next(PMAXPORTION)
 
         Dim PWYERNG As New Random(PSnapshot.Year)
         Dim PWMORNG As New Random(PSnapshot.Month)
@@ -96,13 +96,13 @@
         Dim PWMIRNG As New Random(PSnapshot.Minute)
         Dim PWSERNG As New Random(PSnapshot.Second)
         Dim PWPORTRNG As New Random(LEndpoint.Port)
-        Dim PWriterRNGInitSeed As Integer = PWYERNG.Next(CInt(Math.Floor(PMAXPORTION))) +
-                                            PWMORNG.Next(CInt(Math.Floor(PMAXPORTION))) +
-                                            PWDARNG.Next(CInt(Math.Floor(PMAXPORTION))) +
-                                            PWHORNG.Next(CInt(Math.Floor(PMAXPORTION))) +
-                                            PWMIRNG.Next(CInt(Math.Floor(PMAXPORTION))) +
-                                            PWSERNG.Next(CInt(Math.Floor(PMAXPORTION))) +
-                                            PWPORTRNG.Next(CInt(Math.Floor(PMAXPORTION)))
+        Dim PWriterRNGInitSeed As Integer = PWYERNG.Next(PMAXPORTION) +
+                                            PWMORNG.Next(PMAXPORTION) +
+                                            PWDARNG.Next(PMAXPORTION) +
+                                            PWHORNG.Next(PMAXPORTION) +
+                                            PWMIRNG.Next(PMAXPORTION) +
+                                            PWSERNG.Next(PMAXPORTION) +
+                                            PWPORTRNG.Next(PMAXPORTION)
 
         Dim PReaderInit As New Random(PReaderRNGInitSeed)
         Dim PWriterInit As New Random(PWriterRNGInitSeed)
@@ -157,16 +157,16 @@
         Dim RMSRNG As New Random(RMS)
         Dim RPORTRNG As New Random(LEndpoint.Port)
 
-        Dim MAXPORTION As Double = Int32.MaxValue / 8
+        Dim MAXPORTION As Integer = CInt(Math.Floor(Int32.MaxValue / 8))
 
-        Dim ReaderRNGInitSeed As Integer = RYERNG.Next(CInt(Math.Floor(MAXPORTION))) +
-                                           RMORNG.Next(CInt(Math.Floor(MAXPORTION))) +
-                                           RDARNG.Next(CInt(Math.Floor(MAXPORTION))) +
-                                           RHORNG.Next(CInt(Math.Floor(MAXPORTION))) +
-                                           RMIRNG.Next(CInt(Math.Floor(MAXPORTION))) +
-                                           RSERNG.Next(CInt(Math.Floor(MAXPORTION))) +
-                                           RMSRNG.Next(CInt(Math.Floor(MAXPORTION))) +
-                                           RPORTRNG.Next(CInt(Math.Floor(MAXPORTION)))
+        Dim ReaderRNGInitSeed As Integer = RYERNG.Next(MAXPORTION) +
+                                           RMORNG.Next(MAXPORTION) +
+                                           RDARNG.Next(MAXPORTION) +
+                                           RHORNG.Next(MAXPORTION) +
+                                           RMIRNG.Next(MAXPORTION) +
+                                           RSERNG.Next(MAXPORTION) +
+                                           RMSRNG.Next(MAXPORTION) +
+                                           RPORTRNG.Next(MAXPORTION)
 
         Dim WYERNG As New Random(Snapshot.Year)
         Dim WMORNG As New Random(Snapshot.Month)
@@ -177,14 +177,14 @@
         Dim WMSRNG As New Random(Snapshot.Millisecond)
         Dim WPORTRNG As New Random(REndpoint.Port)
 
-        Dim WriterRNGInitSeed As Integer = WYERNG.Next(CInt(Math.Floor(MAXPORTION))) +
-                                           WMORNG.Next(CInt(Math.Floor(MAXPORTION))) +
-                                           WDARNG.Next(CInt(Math.Floor(MAXPORTION))) +
-                                           WHORNG.Next(CInt(Math.Floor(MAXPORTION))) +
-                                           WMIRNG.Next(CInt(Math.Floor(MAXPORTION))) +
-                                           WSERNG.Next(CInt(Math.Floor(MAXPORTION))) +
-                                           WMSRNG.Next(CInt(Math.Floor(MAXPORTION))) +
-                                           WPORTRNG.Next(CInt(Math.Floor(MAXPORTION)))
+        Dim WriterRNGInitSeed As Integer = WYERNG.Next(MAXPORTION) +
+                                           WMORNG.Next(MAXPORTION) +
+                                           WDARNG.Next(MAXPORTION) +
+                                           WHORNG.Next(MAXPORTION) +
+                                           WMIRNG.Next(MAXPORTION) +
+                                           WSERNG.Next(MAXPORTION) +
+                                           WMSRNG.Next(MAXPORTION) +
+                                           WPORTRNG.Next(MAXPORTION)
 
         Dim ReaderInit As New Random(ReaderRNGInitSeed)
         Dim WriterInit As New Random(WriterRNGInitSeed)
