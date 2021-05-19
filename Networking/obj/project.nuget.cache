@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "dgSpecHash": "GpfwpQBA/tmXN6s+OKFC+t+b+csAGpaJCafx7Bg8LIvah5KAZX5J79uFxKzPnoNXah4j2eSYNl78RTJgEV7kaA==",
+  "success": true,
+  "projectFilePath": "C:\\Users\\demon4hire\\source\\repos\\Ninjastorm380\\Networking\\Networking\\Networking.vbproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\demon4hire\\.nuget\\packages\\microsoft.netcore.platforms\\1.1.0\\microsoft.netcore.platforms.1.1.0.nupkg.sha512",
+    "C:\\Users\\demon4hire\\.nuget\\packages\\netstandard.library\\2.0.3\\netstandard.library.2.0.3.nupkg.sha512"
+  ],
+  "logs": []
+}

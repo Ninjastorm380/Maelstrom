@@ -1,4 +1,4 @@
-﻿Public Class TCPClient : Inherits Net.Sockets.TcpClient
+﻿Public Class TCPClientb : Inherits Net.Sockets.TcpClient
     'private variables'
     Private BaseStream As Net.Sockets.NetworkStream
     Private AESR As Security.Cryptography.AesCryptoServiceProvider
@@ -9,6 +9,8 @@
     Private AESW_SYNC As Object = New Object
     Private AESR_STREAM As System.Security.Cryptography.CryptoStream
     Private AESW_STREAM As System.Security.Cryptography.CryptoStream
+    Private MemReadBuffer As IO.MemoryStream
+    Private MemWriteBuffer As IO.MemoryStream
     Private LEndpoint As Net.IPEndPoint
     Private REndpoint As Net.IPEndPoint
 
@@ -40,13 +42,14 @@
                     If Not Flag1 Then Return True
                     If Not Flag2 Then Return True
 
-                    'poll + available can return a false positive, so we double check if we are actually disconnected by trying a non-blocking zero send.'
+                    'poll + available can return a false negative, so we double check if we are actually disconnected by trying a non-blocking zero send.'
                     Dim blockingState As Boolean = Client.Blocking
                     Try
                         Dim tmp(0) As Byte
                         Client.Blocking = False
-                        Client.Send(tmp, 0, 0)
-                        Return True
+                        Dim result As Integer = Client.Send(tmp, 0, 0)
+                        Client.Blocking = blockingState
+                        If result = 1 Then Return True
                     Catch e As Net.Sockets.SocketException
                         If e.SocketErrorCode = Net.Sockets.SocketError.WouldBlock Then
                             Return True
@@ -56,6 +59,7 @@
                     Finally
                         Client.Blocking = blockingState
                     End Try
+                    Return False
                 End SyncLock
             End SyncLock
         End Get
@@ -63,14 +67,15 @@
 
     'creates an existing TCPClient from a socket.'
     Public Sub New(Socket As Net.Sockets.Socket)
-        MyBase.New
+        MyBase.New(Socket.AddressFamily)
+
         Client = Socket
         Initialize()
     End Sub
 
     'creates and connects a brand new TCPClient.'
     Public Sub New(Endpoint As Net.IPEndPoint)
-        MyBase.New()
+        MyBase.New(Endpoint.AddressFamily)
         MyBase.Connect(Endpoint)
         Initialize()
     End Sub
@@ -85,7 +90,8 @@
         BaseStream = Me.GetStream
         BaseStream.ReadTimeout = 1000
         BaseStream.WriteTimeout = 1000
-
+        MemReadBuffer = New IO.MemoryStream
+        MemWriteBuffer = New IO.MemoryStream
 
         'begin handshake for keyless AES encryption.'
 
@@ -292,6 +298,9 @@
     Public Sub WriteJagged(ByRef DataIn As Byte()())
         If Connected = True Then
             SyncLock AESW_SYNC
+
+
+
                 If Encrypt = True Then
 
                     'compute total send length.'

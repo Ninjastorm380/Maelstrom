@@ -1,0 +1,14 @@
+C:\Users\demon4hire\source\repos\Ninjastorm380\Networking\NetworkLibTester\bin\Release\NetworkLibTester.exe.config
+C:\Users\demon4hire\source\repos\Ninjastorm380\Networking\NetworkLibTester\bin\Release\NetworkLibTester.exe
+C:\Users\demon4hire\source\repos\Ninjastorm380\Networking\NetworkLibTester\bin\Release\NetworkLibTester.pdb
+C:\Users\demon4hire\source\repos\Ninjastorm380\Networking\NetworkLibTester\bin\Release\NetworkLibTester.xml
+C:\Users\demon4hire\source\repos\Ninjastorm380\Networking\NetworkLibTester\obj\Release\NetworkLibTester.vbprojAssemblyReference.cache
+C:\Users\demon4hire\source\repos\Ninjastorm380\Networking\NetworkLibTester\obj\Release\NetworkLibTester.Form1.resources
+C:\Users\demon4hire\source\repos\Ninjastorm380\Networking\NetworkLibTester\obj\Release\NetworkLibTester.Resources.resources
+C:\Users\demon4hire\source\repos\Ninjastorm380\Networking\NetworkLibTester\obj\Release\NetworkLibTester.vbproj.GenerateResource.cache
+C:\Users\demon4hire\source\repos\Ninjastorm380\Networking\NetworkLibTester\obj\Release\NetworkLibTester.vbproj.CoreCompileInputs.cache
+C:\Users\demon4hire\source\repos\Ninjastorm380\Networking\NetworkLibTester\obj\Release\NetworkLibTester.exe
+C:\Users\demon4hire\source\repos\Ninjastorm380\Networking\NetworkLibTester\obj\Release\NetworkLibTester.xml
+C:\Users\demon4hire\source\repos\Ninjastorm380\Networking\NetworkLibTester\obj\Release\NetworkLibTester.pdb
+C:\Users\demon4hire\source\repos\Ninjastorm380\Networking\NetworkLibTester\bin\Release\Networking.dll
+C:\Users\demon4hire\source\repos\Ninjastorm380\Networking\NetworkLibTester\obj\Release\NetworkLibTester.vbproj.CopyComplete

@@ -31,6 +31,7 @@ Public MustInherit Class ServerBase
         SyncLock Me
             If Online = False Then
                 Listener = New Net.Sockets.TcpListener(Endpoint)
+                Listener.Server.SetSocketOption(Net.Sockets.SocketOptionLevel.IPv6, Net.Sockets.SocketOptionName.IPv6Only, False)
                 Dim ListenerThread As New Threading.Thread(AddressOf ListenerMethod)
                 RaiseEvent ServerStarting(Me, New EventArgs)
                 Listener.Start()

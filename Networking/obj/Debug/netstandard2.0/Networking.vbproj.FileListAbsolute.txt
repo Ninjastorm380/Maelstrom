@@ -1,0 +1,9 @@
+C:\Users\demon4hire\source\repos\Ninjastorm380\Networking\Networking\bin\Debug\netstandard2.0\Networking.deps.json
+C:\Users\demon4hire\source\repos\Ninjastorm380\Networking\Networking\bin\Debug\netstandard2.0\Networking.dll
+C:\Users\demon4hire\source\repos\Ninjastorm380\Networking\Networking\bin\Debug\netstandard2.0\Networking.pdb
+C:\Users\demon4hire\source\repos\Ninjastorm380\Networking\Networking\obj\Debug\netstandard2.0\Networking.AssemblyInfoInputs.cache
+C:\Users\demon4hire\source\repos\Ninjastorm380\Networking\Networking\obj\Debug\netstandard2.0\Networking.AssemblyInfo.vb
+C:\Users\demon4hire\source\repos\Ninjastorm380\Networking\Networking\obj\Debug\netstandard2.0\Networking.vbproj.CoreCompileInputs.cache
+C:\Users\demon4hire\source\repos\Ninjastorm380\Networking\Networking\obj\Debug\netstandard2.0\Networking.dll
+C:\Users\demon4hire\source\repos\Ninjastorm380\Networking\Networking\obj\Debug\netstandard2.0\Networking.pdb
+C:\Users\demon4hire\source\repos\Ninjastorm380\Networking\Networking\obj\Debug\netstandard2.0\Networking.vbprojAssemblyReference.cache
