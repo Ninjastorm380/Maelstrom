@@ -11,11 +11,11 @@
     End Sub
 
     Private Sub Button3_Click(sender As Object, e As EventArgs) Handles Button3.Click
-        TestClient1.Start(LoopBackV6)
+        TestClient1.Connect(LoopBackV6)
     End Sub
 
     Private Sub Button4_Click(sender As Object, e As EventArgs) Handles Button4.Click
-        TestClient1.Stop()
+        TestClient1.Disconnect()
     End Sub
 
     Private Sub Button5_Click(sender As Object, e As EventArgs) Handles Button5.Click

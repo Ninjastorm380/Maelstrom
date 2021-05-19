@@ -1,19 +1,19 @@
 ﻿Public MustInherit Class ClientBase
-    Private Client As TCPClient
+    Private Client As TcpClient
 
-    Public Sub Start(Endpoint As Net.IPEndPoint)
+    Public Sub Connect(Endpoint As Net.IPEndPoint)
         If Client Is Nothing Then
-            Client = New TCPClient(Endpoint)
+            Client = New TcpClient(Endpoint)
             Dim AsyncLaunch As New Threading.Thread(AddressOf Prerun) : AsyncLaunch.Start()
         Else
             If Client.Connected = False Then
                 Client.Dispose()
-                Client = New TCPClient(Endpoint)
+                Client = New TcpClient(Endpoint)
                 Dim AsyncLaunch As New Threading.Thread(AddressOf Prerun) : AsyncLaunch.Start()
             End If
         End If
     End Sub
-    Public Sub [Stop]()
+    Public Sub Disconnect()
         Client.Close()
     End Sub
     Private Sub Prerun()
