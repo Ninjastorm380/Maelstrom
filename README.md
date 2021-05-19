@@ -11,5 +11,4 @@ How to use:
 
 Features:
  + Keyless AES-256 encryption
- + Simple and efficent design
- + High performance
+ + Simple, efficent, and highly performant design
