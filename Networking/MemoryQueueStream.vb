@@ -13,6 +13,7 @@
                 Dim MSBuffer As Byte() = MyBase.GetBuffer
                 System.Buffer.BlockCopy(MSBuffer, count, MSBuffer, 0, CInt(MyBase.Length) - count)
                 MyBase.SetLength(MyBase.Length - count)
+                MSBuffer = Nothing
             End If
         End SyncLock
     End Sub
