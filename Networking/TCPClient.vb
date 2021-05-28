@@ -39,8 +39,8 @@
     Public Shadows ReadOnly Property Connected As Boolean
         Get
             If BaseConnected = False Then Return False
-            SyncLock ReadBuffers(0)
-                SyncLock WriteBuffers(0)
+            SyncLock AESR_SYNC
+                SyncLock AESW_SYNC
                     If Client.Connected = False Then
                         BaseConnected = False
                         Return False
@@ -54,7 +54,7 @@
                         Dim PingTimeoutLimit As Integer = 16
                         Dim PingTimeoutCount As Integer = 0
                         PingReplyReceived = False
-                        SendMessage(0, 1)
+                        SendMessageInternal(1, 0)
                         Do Until PingTimeoutLimit = PingTimeoutCount
                             If PingReplyReceived = True Then
                                 PingReplyReceived = False
@@ -75,8 +75,6 @@
         BaseConnected = True
         REndpoint = CType(Client.RemoteEndPoint, Net.IPEndPoint)
         LEndpoint = CType(Client.LocalEndPoint, Net.IPEndPoint)
-        Client.SendBufferSize = Integer.MaxValue
-        Client.ReceiveBufferSize = Integer.MaxValue
         BaseStream = Me.GetStream
 
         For x = 0 To 255
@@ -87,8 +85,8 @@
         Dim Flusher As New Threading.Thread(AddressOf BufferFlusherLoop)
         Flusher.Start()
 
-        SyncLock ReadBuffers(0)
-            SyncLock WriteBuffers(0)
+        SyncLock AESR_SYNC
+            SyncLock AESW_SYNC
                 If AESR_TRANSFORM IsNot Nothing Then AESR_TRANSFORM.Dispose()
                 If AESW_TRANSFORM IsNot Nothing Then AESW_TRANSFORM.Dispose()
                 If AESR IsNot Nothing Then AESR.Dispose()
@@ -166,8 +164,8 @@
         Dim RSE As Int32 : RSE = BitConverter.ToInt32(RemoteDate(5), 0)
         Dim RMS As Int32 : RMS = BitConverter.ToInt32(RemoteDate(6), 0)
 
-            SyncLock ReadBuffers(0)
-                SyncLock WriteBuffers(0)
+        SyncLock AESR_SYNC
+            SyncLock AESW_SYNC
                 If AESR_TRANSFORM IsNot Nothing Then AESR_TRANSFORM.Dispose()
                 If AESW_TRANSFORM IsNot Nothing Then AESW_TRANSFORM.Dispose()
                 If AESR IsNot Nothing Then AESR.Dispose()
@@ -231,90 +229,71 @@
     Private Sub BufferFlusherLoop()
         Dim Limiter As New ThreadLimiter(50)
         Do While Connected = True
-            If Available > 0 Then
-                Dim Code As Byte = 0
-                Dim Channel As Byte = 0
-                Dim ReceivedData As Byte() = Nothing
-                SyncLock ReadBuffers(Channel)
-                    ReceiveMessage(Channel, Code, ReceivedData)
-                    Select Case Code
+            SyncLock AESR_SYNC
+                If Available > 0 Then
+                    Dim DataPacket(Available - 1) As Byte
+                    AESR_STREAM.Read(DataPacket, 0, Available)
+                    Dim ControlByte As Byte = DataPacket(0)
+                    Dim ChannelByte As Byte = DataPacket(1)
+                    Dim LengthBytes As Byte() = {DataPacket(2), DataPacket(3), DataPacket(4), DataPacket(5)}
+                    Dim Length As Int32 = BitConverter.ToInt32(LengthBytes, 0)
+                    Select Case ControlByte
                         Case 0
-                            ReadBuffers(Channel).Write(ReceivedData, 0, ReceivedData.Length)
+                            If Length > 0 Then
+                                Dim Data(Length - 1) As Byte
+                                Buffer.BlockCopy(DataPacket, 6, Data, 0, Length)
+                                ReadBuffers(ChannelByte).Write(Data, 0, Length)
+                            End If
                         Case 1
-                            SyncLock WriteBuffers(0)
-                                SendMessage(0, 2)
+                            SyncLock AESW_SYNC
+                                SendMessageInternal(2, 0)
                             End SyncLock
                         Case 2
                             PingReplyReceived = True
                     End Select
-                End SyncLock
-
-
-            End If
-            For x = 0 To 255
-                SyncLock WriteBuffers(x)
+                End If
+            End SyncLock
+            SyncLock AESW_SYNC
+                For x = 0 To 255
                     If WriteBuffers(x).Length > 0 Then
-                        Dim Data(CInt(WriteBuffers(x).Length) - 1) As Byte
-                        WriteBuffers(x).Read(Data, 0, Data.Length)
-                        SendMessage(CByte(x), 0, Data)
+                        Dim DataPacketPayload(CInt(WriteBuffers(x).Length) - 1) As Byte
+                        WriteBuffers(x).Read(DataPacketPayload, 0, DataPacketPayload.Length)
+                        SendMessageInternal(0, CByte(x), DataPacketPayload)
                     End If
-                End SyncLock
-            Next
-            If GC.GetTotalMemory(False) >= Int32.MaxValue / 2 Then GC.Collect(2, GCCollectionMode.Forced)
+                Next
+            End SyncLock
             Limiter.Limit()
         Loop
     End Sub
-    Private Sub SendMessage(ByRef Channel As Byte, ByRef Code As Byte, Optional ByRef Data As Byte() = Nothing)
+
+    Private Sub SendMessageInternal(Code As Byte, Optional ByRef Channel As Byte = 0, Optional ByRef Data As Byte() = Nothing)
         If BaseConnected = True Then
+            Dim LengthBytes As Byte() = BitConverter.GetBytes(0)
             Dim Length As Int32 = 0
-            Dim LengthBytes As Byte() = BitConverter.GetBytes(Length)
-            Dim PaddedLength As Int32 = 0
-            Dim PaddedLengthBytes As Byte() = BitConverter.GetBytes(PaddedLength)
-            Dim PaddedData As Byte() = Nothing
-            If Data IsNot Nothing AndAlso Data.Length > 0 Then
+            If Data IsNot Nothing Then
                 Length = Data.Length
                 LengthBytes = BitConverter.GetBytes(Length)
-                PaddedLength = CInt(Math.Ceiling(Length / AESW_BYTEBLOCKSIZE)) * AESW_BYTEBLOCKSIZE
-                PaddedLengthBytes = BitConverter.GetBytes(PaddedLength)
-                ReDim PaddedData(PaddedLength - 1)
-                Buffer.BlockCopy(Data, 0, PaddedData, 0, Length)
             End If
-            Dim Header(15) As Byte
-            Header(0) = Channel
-            Header(1) = Code
-            Buffer.BlockCopy(LengthBytes, 0, Header, 2, 4)
-            Buffer.BlockCopy(PaddedLengthBytes, 0, Header, 6, 4)
 
-            AESW_STREAM.Write(Header, 0, 16)
-            If Length > 0 Then AESW_STREAM.Write(PaddedData, 0, PaddedLength)
+            Dim ByteSize As Integer = 6 + Length
+            Dim TotalSize As Integer = CInt(Math.Ceiling(ByteSize / AESW_BYTEBLOCKSIZE)) * AESW_BYTEBLOCKSIZE
+            Dim DataPacket(TotalSize - 1) As Byte
+            DataPacket(0) = Code
+            DataPacket(1) = Channel
+            DataPacket(2) = LengthBytes(0)
+            DataPacket(3) = LengthBytes(1)
+            DataPacket(4) = LengthBytes(2)
+            DataPacket(5) = LengthBytes(3)
+            If Data IsNot Nothing AndAlso Length > 0 Then Buffer.BlockCopy(Data, 0, DataPacket, 6, Length)
+            AESW_STREAM.Write(DataPacket, 0, TotalSize)
             AESW_STREAM.Flush()
-            End If
-    End Sub
-
-    Private Sub ReceiveMessage(ByRef Channel As Byte, ByRef Code As Byte, Optional ByRef Data As Byte() = Nothing)
-        If BaseConnected = True Then
-            Dim Header(15) As Byte
-            Dim LengthBytes(3) As Byte
-            Dim Length As Int32
-            Dim PaddedLengthBytes(3) As Byte
-            Dim PaddedLength As Int32
-            AESR_STREAM.Read(Header, 0, 16)
-            Channel = Header(0)
-            Code = Header(1)
-            Buffer.BlockCopy(Header, 2, LengthBytes, 0, 4)
-            Buffer.BlockCopy(Header, 6, PaddedLengthBytes, 0, 4)
-            Length = BitConverter.ToInt32(LengthBytes, 0)
-            PaddedLength = BitConverter.ToInt32(PaddedLengthBytes, 0)
-            If Length > 0 Then
-                ReDim Data(Length - 1)
-                Dim PaddedData(PaddedLength - 1) As Byte
-                AESR_STREAM.Read(PaddedData, 0, PaddedLength)
-                Buffer.BlockCopy(PaddedData, 0, Data, 0, Length)
-            End If
         End If
     End Sub
+
+
+
     Public Sub WriteJagged(ByRef input As Byte()(), Optional ByRef Channel As Byte = 0)
-        SyncLock WriteBuffers(Channel)
+        SyncLock AESW_SYNC
             Dim ParentLengthBytes As Byte() = BitConverter.GetBytes(input.Length)
             WriteBuffers(Channel).Write(ParentLengthBytes, 0, 4)
             For x = 0 To input.Length - 1
@@ -324,7 +303,7 @@
         End SyncLock
     End Sub
     Public Sub ReadJagged(ByRef output As Byte()(), Optional ByRef Channel As Byte = 0)
-        SyncLock ReadBuffers(Channel)
+        SyncLock AESR_STREAM
             Dim ParentLengthBytes(3) As Byte, ParentLength As Int32 = Nothing
             ReadBuffers(Channel).Read(ParentLengthBytes, 0, 4)
             ParentLength = BitConverter.ToInt32(ParentLengthBytes, 0)
@@ -339,10 +318,14 @@
         End SyncLock
     End Sub
     Public Shadows Sub Close()
-        MyBase.Close()
-        AESR_TRANSFORM.Dispose()
-        AESW_TRANSFORM.Dispose()
-        AESR.Dispose()
-        AESW.Dispose()
+        SyncLock AESR_SYNC
+            SyncLock AESW_SYNC
+                MyBase.Close()
+                AESR_TRANSFORM.Dispose()
+                AESW_TRANSFORM.Dispose()
+                AESR.Dispose()
+                AESW.Dispose()
+            End SyncLock
+        End SyncLock
     End Sub
 End Class
