@@ -39,8 +39,8 @@
     Public Shadows ReadOnly Property Connected As Boolean
         Get
             If BaseConnected = False Then Return False
-            SyncLock AESR_SYNC
-                SyncLock AESW_SYNC
+            SyncLock ReadBuffers(0)
+                SyncLock WriteBuffers(0)
                     If Client.Connected = False Then
                         BaseConnected = False
                         Return False
@@ -87,8 +87,8 @@
         Dim Flusher As New Threading.Thread(AddressOf BufferFlusherLoop)
         Flusher.Start()
 
-        SyncLock AESR_SYNC
-            SyncLock AESW_SYNC
+        SyncLock ReadBuffers(0)
+            SyncLock WriteBuffers(0)
                 If AESR_TRANSFORM IsNot Nothing Then AESR_TRANSFORM.Dispose()
                 If AESW_TRANSFORM IsNot Nothing Then AESW_TRANSFORM.Dispose()
                 If AESR IsNot Nothing Then AESR.Dispose()
@@ -166,8 +166,8 @@
         Dim RSE As Int32 : RSE = BitConverter.ToInt32(RemoteDate(5), 0)
         Dim RMS As Int32 : RMS = BitConverter.ToInt32(RemoteDate(6), 0)
 
-        SyncLock AESR_SYNC
-            SyncLock AESW_SYNC
+            SyncLock ReadBuffers(0)
+                SyncLock WriteBuffers(0)
                 If AESR_TRANSFORM IsNot Nothing Then AESR_TRANSFORM.Dispose()
                 If AESW_TRANSFORM IsNot Nothing Then AESW_TRANSFORM.Dispose()
                 If AESR IsNot Nothing Then AESR.Dispose()
@@ -231,33 +231,35 @@
     Private Sub BufferFlusherLoop()
         Dim Limiter As New ThreadLimiter(50)
         Do While Connected = True
-            SyncLock AESR_SYNC
-                If Available > 0 Then
-                    Dim Code As Byte = 0
-                    Dim Channel As Byte = 0
-                    Dim ReceivedData As Byte() = Nothing
+            If Available > 0 Then
+                Dim Code As Byte = 0
+                Dim Channel As Byte = 0
+                Dim ReceivedData As Byte() = Nothing
+                SyncLock ReadBuffers(Channel)
                     ReceiveMessage(Channel, Code, ReceivedData)
                     Select Case Code
                         Case 0
                             ReadBuffers(Channel).Write(ReceivedData, 0, ReceivedData.Length)
                         Case 1
-                            SyncLock AESW_SYNC
+                            SyncLock WriteBuffers(0)
                                 SendMessage(0, 2)
                             End SyncLock
                         Case 2
                             PingReplyReceived = True
                     End Select
-                End If
-            End SyncLock
-            SyncLock AESW_SYNC
-                For x = 0 To 255
+                End SyncLock
+
+
+            End If
+            For x = 0 To 255
+                SyncLock WriteBuffers(x)
                     If WriteBuffers(x).Length > 0 Then
                         Dim Data(CInt(WriteBuffers(x).Length) - 1) As Byte
                         WriteBuffers(x).Read(Data, 0, Data.Length)
                         SendMessage(CByte(x), 0, Data)
                     End If
-                Next
-            End SyncLock
+                End SyncLock
+            Next
             If GC.GetTotalMemory(False) >= Int32.MaxValue / 2 Then GC.Collect(2, GCCollectionMode.Forced)
             Limiter.Limit()
         Loop
@@ -312,7 +314,7 @@
         End If
     End Sub
     Public Sub WriteJagged(ByRef input As Byte()(), Optional ByRef Channel As Byte = 0)
-        SyncLock AESW_SYNC
+        SyncLock WriteBuffers(Channel)
             Dim ParentLengthBytes As Byte() = BitConverter.GetBytes(input.Length)
             WriteBuffers(Channel).Write(ParentLengthBytes, 0, 4)
             For x = 0 To input.Length - 1
@@ -322,7 +324,7 @@
         End SyncLock
     End Sub
     Public Sub ReadJagged(ByRef output As Byte()(), Optional ByRef Channel As Byte = 0)
-        SyncLock AESR_STREAM
+        SyncLock ReadBuffers(Channel)
             Dim ParentLengthBytes(3) As Byte, ParentLength As Int32 = Nothing
             ReadBuffers(Channel).Read(ParentLengthBytes, 0, 4)
             ParentLength = BitConverter.ToInt32(ParentLengthBytes, 0)
@@ -337,14 +339,10 @@
         End SyncLock
     End Sub
     Public Shadows Sub Close()
-        SyncLock AESR_SYNC
-            SyncLock AESW_SYNC
-                MyBase.Close()
-                AESR_TRANSFORM.Dispose()
-                AESW_TRANSFORM.Dispose()
-                AESR.Dispose()
-                AESW.Dispose()
-            End SyncLock
-        End SyncLock
+        MyBase.Close()
+        AESR_TRANSFORM.Dispose()
+        AESW_TRANSFORM.Dispose()
+        AESR.Dispose()
+        AESW.Dispose()
     End Sub
 End Class

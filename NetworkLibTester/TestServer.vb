@@ -14,5 +14,6 @@
             End If
             Limiter.Limit()
         Loop
+        Debug.Print("connection to server closed properly!")
     End Sub
 End Class
