@@ -7,7 +7,7 @@
     End Sub
     Public Overrides Sub Run(Client As Networking.TcpClient)
         Me.Client = Client
-        Dim Limiter As New Networking.ThreadLimiter(60)
+        Dim Limiter As New Networking.ThreadLimiter(10)
         Do While Client.Connected = True
             If Client.HasMessage = True Then
                 Dim ReceivedData As Byte()() = Nothing

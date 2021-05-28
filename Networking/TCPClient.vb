@@ -19,23 +19,21 @@
     Public ReadOnly Property HasMessage(Optional Channel As Byte = 0) As Boolean
         Get
             SyncLock AESR_SYNC
+                If ReadBuffers(Channel) Is Nothing Then Return False
                 Return ReadBuffers(Channel).Length > 0
             End SyncLock
         End Get
     End Property
-
     Public Sub New(Socket As Net.Sockets.Socket)
         MyBase.New(Socket.AddressFamily)
         Client = Socket
         Initialize()
     End Sub
-
     Public Sub New(Endpoint As Net.IPEndPoint)
         MyBase.New(Endpoint.AddressFamily)
         MyBase.Connect(Endpoint)
         Initialize()
     End Sub
-
     Public Shadows ReadOnly Property Connected As Boolean
         Get
             If BaseConnected = False Then Return False
@@ -54,8 +52,9 @@
                         Dim PingTimeoutLimit As Integer = 16
                         Dim PingTimeoutCount As Integer = 0
                         PingReplyReceived = False
+                        If BaseConnected = False Then Return False
                         SendMessage(0, 1)
-                        Do Until PingTimeoutLimit = PingTimeoutCount
+                        Do Until PingTimeoutLimit = PingTimeoutCount Or BaseConnected = False
                             If PingReplyReceived = True Then
                                 PingReplyReceived = False
                                 Return True
@@ -78,15 +77,12 @@
         Client.SendBufferSize = Integer.MaxValue
         Client.ReceiveBufferSize = Integer.MaxValue
         BaseStream = Me.GetStream
-
         For x = 0 To 255
             ReadBuffers(x) = New MemoryQueueStream
             WriteBuffers(x) = New MemoryQueueStream
         Next
-
         Dim Flusher As New Threading.Thread(AddressOf BufferFlusherLoop)
         Flusher.Start()
-
         SyncLock AESR_SYNC
             SyncLock AESW_SYNC
                 If AESR_TRANSFORM IsNot Nothing Then AESR_TRANSFORM.Dispose()
@@ -133,9 +129,32 @@
                 PReaderInit.NextBytes(PRIV)
                 PWriterInit.NextBytes(PWKey)
                 PWriterInit.NextBytes(PWIV)
-
                 AESR = New Security.Cryptography.AesCryptoServiceProvider With {.Key = PRKey, .IV = PRIV, .Padding = Security.Cryptography.PaddingMode.None}
                 AESW = New Security.Cryptography.AesCryptoServiceProvider With {.Key = PWKey, .IV = PWIV, .Padding = Security.Cryptography.PaddingMode.None}
+                PRKey = Nothing
+                PWKey = Nothing
+                PRIV = Nothing
+                PWIV = Nothing
+                PWriterRNGInitSeed = Nothing
+                PReaderRNGInitSeed = Nothing
+                PWYERNG = Nothing
+                PWMORNG = Nothing
+                PWDARNG = Nothing
+                PWHORNG = Nothing
+                PWMIRNG = Nothing
+                PWSERNG = Nothing
+                PWPORTRNG = Nothing
+                PRYERNG = Nothing
+                PRMORNG = Nothing
+                PRDARNG = Nothing
+                PRHORNG = Nothing
+                PRMIRNG = Nothing
+                PRSERNG = Nothing
+                PRPORTRNG = Nothing
+                PSnapshot = Nothing
+                PReaderInit = Nothing
+                PWriterInit = Nothing
+                PMAXPORTION = Nothing
                 AESR_TRANSFORM = AESR.CreateDecryptor
                 AESW_TRANSFORM = AESW.CreateEncryptor
                 AESR_STREAM = New Security.Cryptography.CryptoStream(BaseStream, AESR_TRANSFORM, Security.Cryptography.CryptoStreamMode.Read)
@@ -144,7 +163,6 @@
                 AESW_BYTEBLOCKSIZE = CInt(AESW.BlockSize / 8)
             End SyncLock
         End SyncLock
-
         Dim Snapshot As DateTime = DateTime.Now
         WriteJagged({BitConverter.GetBytes(Snapshot.Year),
                      BitConverter.GetBytes(Snapshot.Month),
@@ -154,9 +172,16 @@
                      BitConverter.GetBytes(Snapshot.Second),
                      BitConverter.GetBytes(Snapshot.Millisecond)})
         Dim loopLimiter As New ThreadLimiter(50)
-        Do Until HasMessage(0) = True
+        Do Until HasMessage(0) = True Or BaseConnected = False
             loopLimiter.Limit()
         Loop
+        If BaseConnected = False Then
+            If AESR_TRANSFORM IsNot Nothing Then AESR_TRANSFORM.Dispose()
+            If AESW_TRANSFORM IsNot Nothing Then AESW_TRANSFORM.Dispose()
+            If AESR IsNot Nothing Then AESR.Dispose()
+            If AESW IsNot Nothing Then AESW.Dispose()
+            Exit Sub
+        End If
         Dim RemoteDate As Byte()() = Nothing : ReadJagged(RemoteDate)
         Dim RYE As Int32 : RYE = BitConverter.ToInt32(RemoteDate(0), 0)
         Dim RMO As Int32 : RMO = BitConverter.ToInt32(RemoteDate(1), 0)
@@ -165,7 +190,6 @@
         Dim RMI As Int32 : RMI = BitConverter.ToInt32(RemoteDate(4), 0)
         Dim RSE As Int32 : RSE = BitConverter.ToInt32(RemoteDate(5), 0)
         Dim RMS As Int32 : RMS = BitConverter.ToInt32(RemoteDate(6), 0)
-
         SyncLock AESR_SYNC
             SyncLock AESW_SYNC
                 If AESR_TRANSFORM IsNot Nothing Then AESR_TRANSFORM.Dispose()
@@ -217,6 +241,30 @@
                 WriterInit.NextBytes(WIV)
                 AESR = New Security.Cryptography.AesCryptoServiceProvider With {.Key = RKey, .IV = RIV, .Padding = Security.Cryptography.PaddingMode.None}
                 AESW = New Security.Cryptography.AesCryptoServiceProvider With {.Key = WKey, .IV = WIV, .Padding = Security.Cryptography.PaddingMode.None}
+                RKey = Nothing
+                WKey = Nothing
+                RIV = Nothing
+                WIV = Nothing
+                WriterRNGInitSeed = Nothing
+                ReaderRNGInitSeed = Nothing
+                WYERNG = Nothing
+                WMORNG = Nothing
+                WDARNG = Nothing
+                WHORNG = Nothing
+                WMIRNG = Nothing
+                WSERNG = Nothing
+                WPORTRNG = Nothing
+                RYERNG = Nothing
+                RMORNG = Nothing
+                RDARNG = Nothing
+                RHORNG = Nothing
+                RMIRNG = Nothing
+                RSERNG = Nothing
+                RPORTRNG = Nothing
+                Snapshot = Nothing
+                ReaderInit = Nothing
+                WriterInit = Nothing
+                MAXPORTION = Nothing
                 AESR_TRANSFORM = AESR.CreateDecryptor
                 AESW_TRANSFORM = AESW.CreateEncryptor
                 AESR_STREAM = New Security.Cryptography.CryptoStream(BaseStream, AESR_TRANSFORM, Security.Cryptography.CryptoStreamMode.Read)
@@ -226,17 +274,20 @@
             End SyncLock
         End SyncLock
     End Sub
-
-
     Private Sub BufferFlusherLoop()
-        Dim Limiter As New ThreadLimiter(50)
+        Dim Limiter As New ThreadLimiter(25)
         Do While Connected = True
             SyncLock AESR_SYNC
                 If Available > 0 Then
                     Dim Code As Byte = 0
                     Dim Channel As Byte = 0
                     Dim ReceivedData As Byte() = Nothing
-                    ReceiveMessage(Channel, Code, ReceivedData)
+                    Dim AboutToReset As Boolean = False
+                    ReceiveMessage(Channel, Code, ReceivedData, AboutToReset)
+                    If AboutToReset = True Then
+                        Dim AsyncDisconnector As New Threading.Thread(Sub() Close()) : AsyncDisconnector.Start()
+                        Exit Do
+                    End If
                     Select Case Code
                         Case 0
                             ReadBuffers(Channel).Write(ReceivedData, 0, ReceivedData.Length)
@@ -282,28 +333,38 @@
             Header(1) = Code
             Buffer.BlockCopy(LengthBytes, 0, Header, 2, 4)
             Buffer.BlockCopy(PaddedLengthBytes, 0, Header, 6, 4)
-
-            AESW_STREAM.Write(Header, 0, 16)
-            If Length > 0 Then AESW_STREAM.Write(PaddedData, 0, PaddedLength)
-            AESW_STREAM.Flush()
-            End If
+            Try
+                AESW_STREAM.Write(Header, 0, 16)
+                If Length > 0 Then AESW_STREAM.Write(PaddedData, 0, PaddedLength)
+                AESW_STREAM.Flush()
+            Catch ex As System.IO.IOException
+            End Try
+        End If
     End Sub
-
-    Private Sub ReceiveMessage(ByRef Channel As Byte, ByRef Code As Byte, Optional ByRef Data As Byte() = Nothing)
+    Private Sub ReceiveMessage(ByRef Channel As Byte, ByRef Code As Byte, Optional ByRef Data As Byte() = Nothing, Optional ByRef ResetPending As Boolean = False)
         If BaseConnected = True Then
             Dim Header(15) As Byte
             Dim LengthBytes(3) As Byte
             Dim Length As Int32
             Dim PaddedLengthBytes(3) As Byte
             Dim PaddedLength As Int32
-            AESR_STREAM.Read(Header, 0, 16)
-            Channel = Header(0)
-            Code = Header(1)
-            Buffer.BlockCopy(Header, 2, LengthBytes, 0, 4)
-            Buffer.BlockCopy(Header, 6, PaddedLengthBytes, 0, 4)
-            Length = BitConverter.ToInt32(LengthBytes, 0)
-            PaddedLength = BitConverter.ToInt32(PaddedLengthBytes, 0)
-            If Length > 0 Then
+            If AESR_STREAM Is Nothing Then ResetPending = True
+            If ResetPending = False Then
+                AESR_STREAM.Read(Header, 0, 16)
+                Channel = Header(0)
+                Code = Header(1)
+                Buffer.BlockCopy(Header, 2, LengthBytes, 0, 4)
+                Buffer.BlockCopy(Header, 6, PaddedLengthBytes, 0, 4)
+                Length = BitConverter.ToInt32(LengthBytes, 0)
+                PaddedLength = BitConverter.ToInt32(PaddedLengthBytes, 0)
+            End If
+            If Math.Sign(Length) = -1 OrElse Math.Sign(PaddedLength) = -1 Then ResetPending = True
+            If ResetPending = False Then
+                Dim Results As Integer = PaddedLength - Length
+                If Results < 0 OrElse Results >= 16 Then ResetPending = True
+            End If
+            If ResetPending = True Then Exit Sub
+            If Length > 0 And ResetPending = False Then
                 ReDim Data(Length - 1)
                 Dim PaddedData(PaddedLength - 1) As Byte
                 AESR_STREAM.Read(PaddedData, 0, PaddedLength)
@@ -339,11 +400,22 @@
     Public Shadows Sub Close()
         SyncLock AESR_SYNC
             SyncLock AESW_SYNC
+                BaseConnected = False
                 MyBase.Close()
+
+                BaseStream.Dispose()
+                For x = 0 To 255
+                    ReadBuffers(x).Dispose()
+                    WriteBuffers(x).Dispose()
+                Next
                 AESR_TRANSFORM.Dispose()
                 AESW_TRANSFORM.Dispose()
                 AESR.Dispose()
                 AESW.Dispose()
+                AESR_BYTEBLOCKSIZE = Nothing
+                AESW_BYTEBLOCKSIZE = Nothing
+                Client.Dispose()
+                Dispose()
             End SyncLock
         End SyncLock
     End Sub
