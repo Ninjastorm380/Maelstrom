@@ -20,6 +20,5 @@
             End If
             Limiter.Limit()
         Loop
-        Debug.Print("client closed properly!")
     End Sub
 End Class
