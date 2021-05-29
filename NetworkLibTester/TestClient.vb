@@ -6,6 +6,7 @@
         End If
     End Sub
     Public Overrides Sub Run(Client As Networking.TcpClient)
+        Client.UseBufferedChannels = False
         Me.Client = Client
         Dim Limiter As New Networking.ThreadLimiter(10)
         Do While Client.Connected = True
