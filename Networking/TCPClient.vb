@@ -17,19 +17,27 @@
     Private WriteBuffers(255) As MemoryQueueStream
     Private ChannelActiveBase(255) As Boolean
     Private BaseConnected As Boolean = False
+    Public Property UseBufferedChannels As Boolean = True
     Public ReadOnly Property HasMessage(Optional Channel As Byte = 0) As Boolean
         Get
-            SyncLock AESR_SYNC
-                If ReadBuffers(Channel) Is Nothing Then Return False
-                Return ReadBuffers(Channel).Length > 0
-            End SyncLock
+            If UseBufferedChannels = True Then
+                SyncLock AESR_SYNC
+                    If ReadBuffers(Channel) Is Nothing Then Return False
+                    Return ReadBuffers(Channel).Length > 0
+                End SyncLock
+            Else
+                Return BaseStream.DataAvailable
+            End If
+
         End Get
     End Property
     Public Property BufferFlushRate As Integer = 25
     Public Sub ActivateChannel(Channel As Byte)
+        If ReadBuffers(Channel) Is Nothing Then ReadBuffers(Channel) = New MemoryQueueStream
         ChannelActiveBase(Channel) = True
     End Sub
     Public Sub DeactivateChannel(Channel As Byte)
+        If ReadBuffers(Channel) IsNot Nothing Then ReadBuffers(Channel).Dispose()
         ChannelActiveBase(Channel) = False
     End Sub
     Public Sub New(Socket As Net.Sockets.Socket)
@@ -85,11 +93,9 @@
         Client.SendBufferSize = Integer.MaxValue
         Client.ReceiveBufferSize = Integer.MaxValue
         BaseStream = Me.GetStream
+        ReadBuffers(0) = New MemoryQueueStream
+        WriteBuffers(0) = New MemoryQueueStream
 
-        For x = 0 To 255
-            ReadBuffers(x) = New MemoryQueueStream
-            WriteBuffers(x) = New MemoryQueueStream
-        Next
         ChannelActiveBase(0) = True
         For x = 1 To 255
             ChannelActiveBase(x) = False
@@ -296,7 +302,7 @@
     End Sub
     Private Sub BufferFlusherLoop()
         Dim Limiter As New ThreadLimiter(BufferFlushRate)
-        Do While Connected = True
+        Do While Connected = True And UseBufferedChannels = True
             Limiter.IterationsPerSecond = BufferFlushRate
             If Available > 0 Then
                 Dim Code As Byte = 0
@@ -312,9 +318,11 @@
                 End If
                 Select Case Code
                     Case 0
-                        SyncLock ReadBuffers(Channel)
-                            If ChannelActiveBase(Channel) = True Then ReadBuffers(Channel).Write(ReceivedData, 0, ReceivedData.Length)
-                        End SyncLock
+                        If ChannelActiveBase(Channel) = True Then
+                            SyncLock ReadBuffers(Channel)
+                                ReadBuffers(Channel).Write(ReceivedData, 0, ReceivedData.Length)
+                            End SyncLock
+                        End If
                     Case 1
                         SyncLock AESW_SYNC
                             SendMessage(0, 2)
@@ -324,16 +332,16 @@
                 End Select
             End If
             For x = 0 To 255
-                If WriteBuffers(x).Length > 0 Then
-                    SyncLock WriteBuffers(x)
-                        Dim Data(CInt(WriteBuffers(x).Length) - 1) As Byte
-                        WriteBuffers(x).Read(Data, 0, Data.Length)
-                        SyncLock AESW_SYNC
-                            If ChannelActiveBase(x) = True Then
+                If ChannelActiveBase(x) = True Then
+                    If WriteBuffers(x).Length > 0 Then
+                        SyncLock WriteBuffers(x)
+                            Dim Data(CInt(WriteBuffers(x).Length) - 1) As Byte
+                            WriteBuffers(x).Read(Data, 0, Data.Length)
+                            SyncLock AESW_SYNC
                                 SendMessage(CByte(x), 0, Data)
-                            End If
+                            End SyncLock
                         End SyncLock
-                    End SyncLock
+                    End If
                 End If
             Next
             Limiter.Limit()
@@ -403,30 +411,119 @@
         End If
     End Sub
     Public Sub WriteJagged(ByRef input As Byte()(), Optional ByRef Channel As Byte = 0)
-        SyncLock WriteBuffers(Channel)
-            Dim ParentLengthBytes As Byte() = BitConverter.GetBytes(input.Length)
-            WriteBuffers(Channel).Write(ParentLengthBytes, 0, 4)
-            For x = 0 To input.Length - 1
-                WriteBuffers(Channel).Write(BitConverter.GetBytes(input(x).Length), 0, 4)
-                WriteBuffers(Channel).Write(input(x), 0, input(x).Length)
-            Next
-        End SyncLock
+        If UseBufferedChannels = True Then
+            SyncLock WriteBuffers(Channel)
+                Dim ParentLengthBytes As Byte() = BitConverter.GetBytes(input.Length)
+                WriteBuffers(Channel).Write(ParentLengthBytes, 0, 4)
+                For x = 0 To input.Length - 1
+                    WriteBuffers(Channel).Write(BitConverter.GetBytes(input(x).Length), 0, 4)
+                    WriteBuffers(Channel).Write(input(x), 0, input(x).Length)
+                Next
+            End SyncLock
+        Else
+            SyncLock AESW_SYNC
+                Dim Length As Int32 = 0
+                Dim LengthBytes As Byte() = BitConverter.GetBytes(Length)
+                Dim PaddedLength As Int32 = 0
+                Dim PaddedLengthBytes As Byte() = BitConverter.GetBytes(PaddedLength)
+                Dim PaddedData As Byte() = Nothing
+                Dim Data As Byte() = Nothing
+                WrapJagged(input, Data)
+
+                Length = Data.Length
+                LengthBytes = BitConverter.GetBytes(Length)
+                PaddedLength = CInt(Math.Ceiling(Length / AESW_BYTEBLOCKSIZE)) * AESW_BYTEBLOCKSIZE
+                PaddedLengthBytes = BitConverter.GetBytes(PaddedLength)
+                ReDim PaddedData(PaddedLength - 1)
+                Buffer.BlockCopy(Data, 0, PaddedData, 0, Length)
+
+                Dim Header(15) As Byte
+                Buffer.BlockCopy(LengthBytes, 0, Header, 0, 4)
+                Buffer.BlockCopy(PaddedLengthBytes, 0, Header, 4, 4)
+                AESW_STREAM.Write(Header, 0, 16)
+                AESW_STREAM.Write(PaddedData, 0, PaddedLength)
+                AESW_STREAM.Flush()
+            End SyncLock
+        End If
     End Sub
     Public Sub ReadJagged(ByRef output As Byte()(), Optional ByRef Channel As Byte = 0)
-        SyncLock ReadBuffers(Channel)
-            Dim ParentLengthBytes(3) As Byte, ParentLength As Int32 = Nothing
-            ReadBuffers(Channel).Read(ParentLengthBytes, 0, 4)
-            ParentLength = BitConverter.ToInt32(ParentLengthBytes, 0)
-            ReDim output(ParentLength - 1)
-            For x = 0 To ParentLength - 1
-                Dim ChildLengthBytes(3) As Byte, ChildLength As Int32 = Nothing
-                ReadBuffers(Channel).Read(ChildLengthBytes, 0, 4)
-                ChildLength = BitConverter.ToInt32(ChildLengthBytes, 0)
-                ReDim output(x)(ChildLength - 1)
-                ReadBuffers(Channel).Read(output(x), 0, ChildLength)
-            Next
-        End SyncLock
+        If UseBufferedChannels = True Then
+            SyncLock ReadBuffers(Channel)
+                Dim ParentLengthBytes(3) As Byte, ParentLength As Int32 = Nothing
+                ReadBuffers(Channel).Read(ParentLengthBytes, 0, 4)
+                ParentLength = BitConverter.ToInt32(ParentLengthBytes, 0)
+                ReDim output(ParentLength - 1)
+                For x = 0 To ParentLength - 1
+                    Dim ChildLengthBytes(3) As Byte, ChildLength As Int32 = Nothing
+                    ReadBuffers(Channel).Read(ChildLengthBytes, 0, 4)
+                    ChildLength = BitConverter.ToInt32(ChildLengthBytes, 0)
+                    ReDim output(x)(ChildLength - 1)
+                    ReadBuffers(Channel).Read(output(x), 0, ChildLength)
+                Next
+            End SyncLock
+        Else
+            SyncLock AESR_SYNC
+                Dim Header(15) As Byte
+                Dim LengthBytes(3) As Byte
+                Dim Length As Int32
+                Dim PaddedLengthBytes(3) As Byte
+                Dim PaddedLength As Int32
+                AESR_STREAM.Read(Header, 0, 16)
+                Buffer.BlockCopy(Header, 0, LengthBytes, 0, 4)
+                Buffer.BlockCopy(Header, 4, PaddedLengthBytes, 0, 4)
+                Length = BitConverter.ToInt32(LengthBytes, 0)
+                PaddedLength = BitConverter.ToInt32(PaddedLengthBytes, 0)
+                Dim ReceivedData(Length - 1) As Byte
+                Dim PaddedData(PaddedLength - 1) As Byte
+                AESR_STREAM.Read(PaddedData, 0, PaddedLength)
+                Buffer.BlockCopy(PaddedData, 0, ReceivedData, 0, Length)
+                UnwrapJagged(ReceivedData, output)
+            End SyncLock
+
+        End If
     End Sub
+
+    Private Sub WrapJagged(ByRef Input As Byte()(), ByRef Output As Byte())
+        Dim OutputLength As Int32 = 4 + (4 * Input.Length)
+        Dim JaggedZeroedLength As Int32 = Input.Length - 1
+        For x = 0 To JaggedZeroedLength
+            OutputLength += Input(x).Length
+        Next
+        ReDim Output(OutputLength - 1)
+
+        Dim ArrayCounter As Int32 = 0
+
+        Dim JaggedLength As Int32 = Input.Length
+        Dim JaggedLengthBytes As Byte() = BitConverter.GetBytes(JaggedLength)
+        Dim ArrayLength As Int32
+        Dim ArrayLengthBytes As Byte()
+
+
+        Buffer.BlockCopy(JaggedLengthBytes, 0, Output, ArrayCounter, 4) : ArrayCounter += 4
+        For x = 0 To JaggedZeroedLength
+            ArrayLength = Input(x).Length : ArrayLengthBytes = BitConverter.GetBytes(ArrayLength)
+            Buffer.BlockCopy(ArrayLengthBytes, 0, Output, ArrayCounter, 4) : ArrayCounter += 4
+            Buffer.BlockCopy(Input(x), 0, Output, ArrayCounter, ArrayLength) : ArrayCounter += ArrayLength
+        Next
+    End Sub
+    Private Sub UnwrapJagged(ByRef Input As Byte(), ByRef Output As Byte()())
+        Dim ArrayCounter As Integer = 0
+
+        Dim JaggedLength As Int32
+        Dim JaggedLengthBytes(3) As Byte
+        Dim ArrayLength As Int32
+        Dim ArrayLengthBytes(3) As Byte
+
+        Buffer.BlockCopy(Input, ArrayCounter, JaggedLengthBytes, 0, 4) : JaggedLength = BitConverter.ToInt32(JaggedLengthBytes, 0) : ArrayCounter += 4
+        Dim ZeroedCount As Integer = JaggedLength - 1
+        ReDim Output(ZeroedCount)
+        For x = 0 To ZeroedCount
+            Buffer.BlockCopy(Input, ArrayCounter, ArrayLengthBytes, 0, 4) : ArrayLength = BitConverter.ToInt32(ArrayLengthBytes, 0) : ArrayCounter += 4
+            ReDim Output(x)(ArrayLength - 1)
+            Buffer.BlockCopy(Input, ArrayCounter, Output(x), 0, ArrayLength) : ArrayCounter += ArrayLength
+        Next
+    End Sub
+
     Public Shadows Sub Close()
         SyncLock AESR_SYNC
             SyncLock AESW_SYNC
@@ -435,8 +532,8 @@
 
                 BaseStream.Dispose()
                 For x = 0 To 255
-                    ReadBuffers(x).Dispose()
-                    WriteBuffers(x).Dispose()
+                    If ReadBuffers(x) IsNot Nothing Then ReadBuffers(x).Dispose()
+                    If WriteBuffers(x) IsNot Nothing Then WriteBuffers(x).Dispose()
                 Next
                 AESR_TRANSFORM.Dispose()
                 AESW_TRANSFORM.Dispose()

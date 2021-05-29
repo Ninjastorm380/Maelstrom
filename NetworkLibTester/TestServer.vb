@@ -1,5 +1,5 @@
 ﻿Public Class TestServer : Inherits Networking.ServerBase
-    Public Overrides Sub Run(Client As Networking.TCPClient)
+    Public Overrides Sub Run(Client As Networking.TcpClient)
         Dim Limiter As New Networking.ThreadLimiter(10)
         Do While Client.Connected = True And Online = True
             If Client.HasMessage = True Then
