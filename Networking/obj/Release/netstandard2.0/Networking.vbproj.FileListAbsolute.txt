@@ -4,4 +4,3 @@ C:\Users\demon4hire\source\repos\Ninjastorm380\Networking\Networking\obj\Release
 C:\Users\demon4hire\source\repos\Ninjastorm380\Networking\Networking\obj\Release\netstandard2.0\Networking.AssemblyInfo.vb
 C:\Users\demon4hire\source\repos\Ninjastorm380\Networking\Networking\obj\Release\netstandard2.0\Networking.vbproj.CoreCompileInputs.cache
 C:\Users\demon4hire\source\repos\Ninjastorm380\Networking\Networking\obj\Release\netstandard2.0\Networking.dll
-C:\Users\demon4hire\source\repos\Ninjastorm380\Networking\Networking\obj\Release\netstandard2.0\Networking.vbprojAssemblyReference.cache

@@ -1,4 +1,4 @@
-﻿Public Class TestClient : Inherits Networking.ClientBase
+﻿Public Class TestClient : Inherits Networking.Bases.Client
     Private Client As Networking.TcpClient = Nothing
     Private IsReconnectingFlag As Boolean = False
     Public Sub TestAutoReconnect()
@@ -16,12 +16,12 @@
     End Sub
     Public Overrides Sub Run(Client As Networking.TcpClient)
         If IsReconnectingFlag = True Then
+            IsReconnectingFlag = False
             MsgBox("successfully reconnected!", MsgBoxStyle.OkOnly, "TestForm - test client")
         End If
-        IsReconnectingFlag = False
         Client.UseBufferedChannels = False
         Me.Client = Client
-        Dim Limiter As New Networking.ThreadLimiter(10)
+        Dim Limiter As New Networking.Governors.LoopGovernor(10)
         Do While Client.Connected = True
             If Client.HasMessage = True Then
                 Dim ReceivedData As Byte()() = Nothing

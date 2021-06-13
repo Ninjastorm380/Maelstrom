@@ -64,7 +64,7 @@
                     If Not Flag1 Then Return True
                     If Not Flag2 Then Return True
                     If Client IsNot Nothing Then
-                        Dim PingTimeoutWatchLimiter As New ThreadLimiter(40)
+                        Dim PingTimeoutWatchLimiter As New Governors.LoopGovernor(40)
                         Dim PingTimeoutLimit As Integer = 16
                         Dim PingTimeoutCount As Integer = 0
                         PingReplyReceived = False
@@ -198,7 +198,7 @@
                      BitConverter.GetBytes(Snapshot.Minute),
                      BitConverter.GetBytes(Snapshot.Second),
                      BitConverter.GetBytes(Snapshot.Millisecond)})
-        Dim loopLimiter As New ThreadLimiter(50)
+        Dim loopLimiter As New Networking.Governors.LoopGovernor(50)
         Do Until HasMessage(0) = True Or BaseConnected = False : loopLimiter.Limit() : Loop
         If BaseConnected = False Then Exit Sub
         Dim RemoteDate As Byte()() = Nothing : ReadJagged(RemoteDate)
@@ -301,9 +301,9 @@
         MAXPORTION = Nothing
     End Sub
     Private Sub BufferFlusherLoop()
-        Dim Limiter As New ThreadLimiter(BufferFlushRate)
+        Dim Limiter As New Governors.LoopGovernor(BufferFlushRate)
         Do While Connected = True And UseBufferedChannels = True
-            Limiter.IterationsPerSecond = BufferFlushRate
+            Limiter.LoopsPerSecond = BufferFlushRate
             If Available > 0 Then
                 Dim Code As Byte = 0
                 Dim Channel As Byte = 0

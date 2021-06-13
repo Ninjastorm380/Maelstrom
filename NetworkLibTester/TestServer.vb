@@ -1,6 +1,6 @@
-﻿Public Class TestServer : Inherits Networking.ServerBase
+﻿Public Class TestServer : Inherits Networking.Bases.Server
     Public Overrides Sub Run(Client As Networking.TcpClient)
-        Dim Limiter As New Networking.ThreadLimiter(10)
+        Dim Limiter As New Networking.Governors.LoopGovernor(10)
         Client.UseBufferedChannels = False
         Do While Client.Connected = True And Online = True
             If Client.HasMessage = True Then

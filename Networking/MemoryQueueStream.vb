@@ -1,4 +1,4 @@
-﻿Public Class MemoryQueueStream : Inherits IO.MemoryStream
+﻿Friend Class MemoryQueueStream : Inherits IO.MemoryStream
     Dim InternalLength As Long = 0
     Dim MaxLength As Long = 0
     Sub New(Optional DefaultSize As Integer = 0)
