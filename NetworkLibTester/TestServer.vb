@@ -9,6 +9,7 @@
                 Dim ReceivedMessage As String = Text.Encoding.ASCII.GetString(ReceivedData(0))
                 Select Case ReceivedMessage
                     Case "test message"
+                        MsgBox("server received test message, responding...", MsgBoxStyle.OkOnly, "TestForm - test server")
                         Client.WriteJagged({Text.Encoding.ASCII.GetBytes("test response")})
                 End Select
             End If

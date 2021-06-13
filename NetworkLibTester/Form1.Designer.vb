@@ -29,6 +29,7 @@ Partial Class Form1
         Me.GroupBox1 = New System.Windows.Forms.GroupBox()
         Me.GroupBox2 = New System.Windows.Forms.GroupBox()
         Me.Button5 = New System.Windows.Forms.Button()
+        Me.Button6 = New System.Windows.Forms.Button()
         Me.GroupBox1.SuspendLayout()
         Me.GroupBox2.SuspendLayout()
         Me.SuspendLayout()
@@ -55,7 +56,7 @@ Partial Class Form1
         '
         'Button3
         '
-        Me.Button3.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.Button3.Dock = System.Windows.Forms.DockStyle.Left
         Me.Button3.Location = New System.Drawing.Point(3, 16)
         Me.Button3.Name = "Button3"
         Me.Button3.Size = New System.Drawing.Size(189, 22)
@@ -66,7 +67,7 @@ Partial Class Form1
         'Button4
         '
         Me.Button4.Dock = System.Windows.Forms.DockStyle.Right
-        Me.Button4.Location = New System.Drawing.Point(192, 16)
+        Me.Button4.Location = New System.Drawing.Point(501, 16)
         Me.Button4.Name = "Button4"
         Me.Button4.Size = New System.Drawing.Size(101, 22)
         Me.Button4.TabIndex = 3
@@ -86,30 +87,42 @@ Partial Class Form1
         '
         'GroupBox2
         '
+        Me.GroupBox2.Controls.Add(Me.Button6)
+        Me.GroupBox2.Controls.Add(Me.Button5)
         Me.GroupBox2.Controls.Add(Me.Button3)
         Me.GroupBox2.Controls.Add(Me.Button4)
         Me.GroupBox2.Location = New System.Drawing.Point(12, 56)
         Me.GroupBox2.Name = "GroupBox2"
-        Me.GroupBox2.Size = New System.Drawing.Size(296, 41)
+        Me.GroupBox2.Size = New System.Drawing.Size(605, 41)
         Me.GroupBox2.TabIndex = 0
         Me.GroupBox2.TabStop = False
         Me.GroupBox2.Text = "Client"
         '
         'Button5
         '
-        Me.Button5.Location = New System.Drawing.Point(15, 103)
+        Me.Button5.Dock = System.Windows.Forms.DockStyle.Left
+        Me.Button5.Location = New System.Drawing.Point(192, 16)
         Me.Button5.Name = "Button5"
-        Me.Button5.Size = New System.Drawing.Size(75, 23)
+        Me.Button5.Size = New System.Drawing.Size(150, 22)
         Me.Button5.TabIndex = 5
-        Me.Button5.Text = "Button5"
+        Me.Button5.Text = "Send test message to server"
         Me.Button5.UseVisualStyleBackColor = True
+        '
+        'Button6
+        '
+        Me.Button6.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.Button6.Location = New System.Drawing.Point(342, 16)
+        Me.Button6.Name = "Button6"
+        Me.Button6.Size = New System.Drawing.Size(159, 22)
+        Me.Button6.TabIndex = 6
+        Me.Button6.Text = "Test auto reconnect code..."
+        Me.Button6.UseVisualStyleBackColor = True
         '
         'Form1
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
         Me.ClientSize = New System.Drawing.Size(800, 450)
-        Me.Controls.Add(Me.Button5)
         Me.Controls.Add(Me.GroupBox2)
         Me.Controls.Add(Me.GroupBox1)
         Me.Name = "Form1"
@@ -127,4 +140,5 @@ Partial Class Form1
     Friend WithEvents GroupBox1 As GroupBox
     Friend WithEvents GroupBox2 As GroupBox
     Friend WithEvents Button5 As Button
+    Friend WithEvents Button6 As Button
 End Class

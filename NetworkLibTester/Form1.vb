@@ -21,4 +21,8 @@
     Private Sub Button5_Click(sender As Object, e As EventArgs) Handles Button5.Click
         TestClient1.TestCommand()
     End Sub
+
+    Private Sub Button6_Click(sender As Object, e As EventArgs) Handles Button6.Click
+        TestClient1.TestAutoReconnect()
+    End Sub
 End Class

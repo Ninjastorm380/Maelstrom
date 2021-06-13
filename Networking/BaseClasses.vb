@@ -2,10 +2,11 @@
     Private Client As TcpClient
     Private PurposeClosed As Boolean = False
     Private Endpoint As Net.IPEndPoint
+    Protected Friend Event Reconnecting As EventHandler
 
     Public Sub Connect(Endpoint As Net.IPEndPoint)
         Me.Endpoint = Endpoint
-        PurposeClosed = False
+
         If Client Is Nothing Then
             Client = New TcpClient(Endpoint)
             Dim AsyncLaunch As New Threading.Thread(AddressOf Prerun) : AsyncLaunch.Start()
@@ -25,8 +26,13 @@
         Client = Nothing
     End Sub
     Private Sub Prerun()
+        PurposeClosed = False
         Run(Client)
-        If PurposeClosed = False Then Connect(Endpoint)
+        If PurposeClosed = False Then
+            RaiseEvent Reconnecting(Me, EventArgs.Empty)
+            Connect(Endpoint)
+
+        End If
     End Sub
 
     Public MustOverride Sub Run(ByVal Client As TCPClient)
@@ -35,8 +41,8 @@ Public MustInherit Class ServerBase
     Private Listener As Net.Sockets.TcpListener
     Private OnlineBase As Boolean = False
     Private HoldingTMP As TcpClient
-    Public Event ServerStarting As EventHandler
-    Public Event ServerStopping As EventHandler
+    Protected Friend Event ServerStarting As EventHandler
+    Protected Friend Event ServerStopping As EventHandler
     Public ReadOnly Property Online As Boolean
         Get
             Return OnlineBase
