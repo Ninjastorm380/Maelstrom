@@ -1,10 +1,12 @@
 ﻿Public Class TestClient : Inherits Networking.ClientBase
     Private Client As Networking.TcpClient = Nothing
+    Private IsReconnectingFlag As Boolean = False
     Public Sub TestAutoReconnect()
         Client.Close()
     End Sub
     Protected Friend Sub IsReconnecting() Handles Me.Reconnecting
-        MsgBox("lost connection, but we reconnected successfully!", MsgBoxStyle.OkOnly, "TestForm - test client")
+        IsReconnectingFlag = True
+        MsgBox("lost connection! attempting to reconnect...", MsgBoxStyle.OkOnly, "TestForm - test client")
     End Sub
     Public Sub TestCommand()
         If Client IsNot Nothing AndAlso Client.Connected = True Then
@@ -13,6 +15,10 @@
         End If
     End Sub
     Public Overrides Sub Run(Client As Networking.TcpClient)
+        If IsReconnectingFlag = True Then
+            MsgBox("successfully reconnected!", MsgBoxStyle.OkOnly, "TestForm - test client")
+        End If
+        IsReconnectingFlag = False
         Client.UseBufferedChannels = False
         Me.Client = Client
         Dim Limiter As New Networking.ThreadLimiter(10)
