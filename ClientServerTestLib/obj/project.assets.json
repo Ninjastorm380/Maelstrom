@@ -25,6 +25,16 @@
         "build": {
           "build/netstandard2.0/NETStandard.Library.targets": {}
         }
+      },
+      "Networking/1.0.0": {
+        "type": "project",
+        "framework": ".NETStandard,Version=v2.0",
+        "compile": {
+          "bin/placeholder/Networking.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/Networking.dll": {}
+        }
       }
     }
   },
@@ -172,11 +182,17 @@
         "netstandard.library.2.0.3.nupkg.sha512",
         "netstandard.library.nuspec"
       ]
+    },
+    "Networking/1.0.0": {
+      "type": "project",
+      "path": "../Networking/Networking.vbproj",
+      "msbuildProject": "../Networking/Networking.vbproj"
     }
   },
   "projectFileDependencyGroups": {
     ".NETStandard,Version=v2.0": [
-      "NETStandard.Library >= 2.0.3"
+      "NETStandard.Library >= 2.0.3",
+      "Networking >= 1.0.0"
     ]
   },
   "packageFolders": {
@@ -185,11 +201,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/home/demon4hire/RiderProjects/Networking/Networking/Networking.vbproj",
-      "projectName": "Networking",
-      "projectPath": "/home/demon4hire/RiderProjects/Networking/Networking/Networking.vbproj",
+      "projectUniqueName": "/home/demon4hire/RiderProjects/Networking/ClientServerTestLib/ClientServerTestLib.vbproj",
+      "projectName": "ClientServerTestLib",
+      "projectPath": "/home/demon4hire/RiderProjects/Networking/ClientServerTestLib/ClientServerTestLib.vbproj",
       "packagesPath": "/home/demon4hire/.nuget/packages/",
-      "outputPath": "/home/demon4hire/RiderProjects/Networking/Networking/obj/",
+      "outputPath": "/home/demon4hire/RiderProjects/Networking/ClientServerTestLib/obj/",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "/home/demon4hire/.nuget/NuGet/NuGet.Config"
@@ -203,7 +219,11 @@
       "frameworks": {
         "netstandard2.0": {
           "targetAlias": "netstandard2.0",
-          "projectReferences": {}
+          "projectReferences": {
+            "/home/demon4hire/RiderProjects/Networking/Networking/Networking.vbproj": {
+              "projectPath": "/home/demon4hire/RiderProjects/Networking/Networking/Networking.vbproj"
+            }
+          }
         }
       },
       "warningProperties": {

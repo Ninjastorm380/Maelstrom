@@ -1,27 +1,25 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\demon4hire\\source\\repos\\Ninjastorm380\\Networking\\Networking\\Networking.vbproj": {}
+    "/home/demon4hire/RiderProjects/Networking/Networking/Networking.vbproj": {}
   },
   "projects": {
-    "C:\\Users\\demon4hire\\source\\repos\\Ninjastorm380\\Networking\\Networking\\Networking.vbproj": {
+    "/home/demon4hire/RiderProjects/Networking/Networking/Networking.vbproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\demon4hire\\source\\repos\\Ninjastorm380\\Networking\\Networking\\Networking.vbproj",
+        "projectUniqueName": "/home/demon4hire/RiderProjects/Networking/Networking/Networking.vbproj",
         "projectName": "Networking",
-        "projectPath": "C:\\Users\\demon4hire\\source\\repos\\Ninjastorm380\\Networking\\Networking\\Networking.vbproj",
-        "packagesPath": "C:\\Users\\demon4hire\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\demon4hire\\source\\repos\\Ninjastorm380\\Networking\\Networking\\obj\\",
+        "projectPath": "/home/demon4hire/RiderProjects/Networking/Networking/Networking.vbproj",
+        "packagesPath": "/home/demon4hire/.nuget/packages/",
+        "outputPath": "/home/demon4hire/RiderProjects/Networking/Networking/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "C:\\Users\\demon4hire\\AppData\\Roaming\\NuGet\\NuGet.Config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+          "/home/demon4hire/.nuget/NuGet/NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "netstandard2.0"
         ],
         "sources": {
-          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
@@ -29,6 +27,11 @@
             "targetAlias": "netstandard2.0",
             "projectReferences": {}
           }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
         }
       },
       "frameworks": {
@@ -52,7 +55,7 @@
           ],
           "assetTargetFallback": true,
           "warn": true,
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\5.0.202\\RuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "/usr/lib/mono/msbuild/Current/bin/RuntimeIdentifierGraph.json"
         }
       }
     }

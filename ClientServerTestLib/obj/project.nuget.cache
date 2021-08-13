@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "L6P611G/POxQvsakzafozHH8IkTaFpHkT8MLyyXP7maoxWQPnVbXOPo7VRSz+HtXZrL4GHn5VY0GjuYfwMu7tQ==",
+  "dgSpecHash": "IbfjlfC8zy25bj6SBrYee0IO4SAFcXcYaQSTScAUmmpM73IWPtQFlJPVlFPUtdyL2CsofIcy064SuWENNK/8jg==",
   "success": true,
-  "projectFilePath": "/home/demon4hire/RiderProjects/Networking/Networking/Networking.vbproj",
+  "projectFilePath": "/home/demon4hire/RiderProjects/Networking/ClientServerTestLib/ClientServerTestLib.vbproj",
   "expectedPackageFiles": [
     "/home/demon4hire/.nuget/packages/microsoft.netcore.platforms/1.1.0/microsoft.netcore.platforms.1.1.0.nupkg.sha512",
     "/home/demon4hire/.nuget/packages/netstandard.library/2.0.3/netstandard.library.2.0.3.nupkg.sha512"

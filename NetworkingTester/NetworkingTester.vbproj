@@ -1,0 +1,86 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+    <PropertyGroup>
+        <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+        <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+        <ProjectGuid>{B1233C93-1146-4A6D-8364-AD8389887B38}</ProjectGuid>
+        <OutputType>WinExe</OutputType>
+        <RootNamespace>NetworkingTester</RootNamespace>
+        <AssemblyName>NetworkingTester</AssemblyName>
+        <FileAlignment>512</FileAlignment>
+        <MyType>Windows</MyType>
+        <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    </PropertyGroup>
+    <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+        <DebugSymbols>true</DebugSymbols>
+        <DebugType>full</DebugType>
+        <DefineDebug>true</DefineDebug>
+        <DefineTrace>true</DefineTrace>
+        <OutputPath>bin\Debug\</OutputPath>
+        <DocumentationFile>NetworkingTester.xml</DocumentationFile>
+        <NoWarn>42016,41999,42017,42018,42019,42032,42036,42020,42021,42022</NoWarn>
+        <Prefer32bit>false</Prefer32bit>
+    </PropertyGroup>
+    <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+        <DebugType>pdbonly</DebugType>
+        <DefineDebug>false</DefineDebug>
+        <DefineTrace>true</DefineTrace>
+        <Optimize>true</Optimize>
+        <OutputPath>bin\Release\</OutputPath>
+        <DocumentationFile>NetworkingTester.xml</DocumentationFile>
+        <NoWarn>42016,41999,42017,42018,42019,42032,42036,42020,42021,42022</NoWarn>
+        <Prefer32bit>false</Prefer32bit>
+    </PropertyGroup>
+    <PropertyGroup>
+        <OptionExplicit>On</OptionExplicit>
+    </PropertyGroup>
+    <PropertyGroup>
+        <OptionCompare>Binary</OptionCompare>
+    </PropertyGroup>
+    <PropertyGroup>
+        <OptionStrict>On</OptionStrict>
+    </PropertyGroup>
+    <PropertyGroup>
+        <OptionInfer>Off</OptionInfer>
+    </PropertyGroup>
+    <ItemGroup>
+        <Reference Include="System" />
+        <Reference Include="System.Data" />
+        <Reference Include="System.Drawing" />
+        <Reference Include="System.Windows.Forms" />
+        <Reference Include="System.Xml" />
+        <Reference Include="System.Core" />
+        <Reference Include="System.Xml.Linq" />
+        <Reference Include="System.Data.DataSetExtensions" />
+        <Reference Include="System.Net.Http" />
+    </ItemGroup>
+    <ItemGroup>
+        <Import Include="Microsoft.VisualBasic" />
+        <Import Include="System" />
+        <Import Include="System.Collections" />
+        <Import Include="System.Collections.Generic" />
+        <Import Include="System.Data" />
+        <Import Include="System.Diagnostics" />
+        <Import Include="System.Linq" />
+        <Import Include="System.Xml.Linq" />
+        <Import Include="System.Threading.Tasks" />
+    </ItemGroup>
+    <ItemGroup>
+        <Compile Include="MainForm.vb" />
+    </ItemGroup>
+    <ItemGroup>
+      <ReferencePathWithRefAssemblies Update="\usr\lib\mono\4.8-api\Facades\netstandard.dll" />
+    </ItemGroup>
+    <ItemGroup>
+      <ProjectReference Include="..\ClientServerTestLib\ClientServerTestLib.vbproj">
+        <Project>{13fb1cfc-b3b1-4148-bc59-76d64a65109e}</Project>
+        <Name>ClientServerTestLib</Name>
+      </ProjectReference>
+      <ProjectReference Include="..\Networking\Networking.vbproj">
+        <Project>{91c0ba12-850b-4854-92f2-7590d859833f}</Project>
+        <Name>Networking</Name>
+      </ProjectReference>
+    </ItemGroup>
+    <Import Project="$(MSBuildToolsPath)\Microsoft.VisualBasic.targets" />
+</Project>
