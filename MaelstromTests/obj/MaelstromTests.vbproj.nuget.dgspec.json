@@ -1,0 +1,121 @@
+{
+  "format": 1,
+  "restore": {
+    "/home/prydaran/RiderProjects/Networking/MaelstromTests/MaelstromTests.vbproj": {}
+  },
+  "projects": {
+    "/home/prydaran/RiderProjects/Networking/Maelstrom/Maelstrom.vbproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "/home/prydaran/RiderProjects/Networking/Maelstrom/Maelstrom.vbproj",
+        "projectName": "Maelstrom",
+        "projectPath": "/home/prydaran/RiderProjects/Networking/Maelstrom/Maelstrom.vbproj",
+        "packagesPath": "/home/prydaran/.nuget/packages/",
+        "outputPath": "/home/prydaran/RiderProjects/Networking/Maelstrom/obj/",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "/home/prydaran/.nuget/NuGet/NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "netstandard2.0"
+        ],
+        "sources": {
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "netstandard2.0": {
+            "projectReferences": {}
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        }
+      },
+      "frameworks": {
+        "netstandard2.0": {
+          "dependencies": {
+            "NETStandard.Library": {
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[2.0.3, )",
+              "autoReferenced": true
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "runtimeIdentifierGraphPath": "/usr/share/dotnet/sdk/3.1.120/RuntimeIdentifierGraph.json"
+        }
+      }
+    },
+    "/home/prydaran/RiderProjects/Networking/MaelstromTests/MaelstromTests.vbproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "/home/prydaran/RiderProjects/Networking/MaelstromTests/MaelstromTests.vbproj",
+        "projectName": "MaelstromTests",
+        "projectPath": "/home/prydaran/RiderProjects/Networking/MaelstromTests/MaelstromTests.vbproj",
+        "packagesPath": "/home/prydaran/.nuget/packages/",
+        "outputPath": "/home/prydaran/RiderProjects/Networking/MaelstromTests/obj/",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "/home/prydaran/.nuget/NuGet/NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "netcoreapp3.1"
+        ],
+        "sources": {
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "netcoreapp3.1": {
+            "projectReferences": {
+              "/home/prydaran/RiderProjects/Networking/Maelstrom/Maelstrom.vbproj": {
+                "projectPath": "/home/prydaran/RiderProjects/Networking/Maelstrom/Maelstrom.vbproj"
+              }
+            }
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        }
+      },
+      "frameworks": {
+        "netcoreapp3.1": {
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "downloadDependencies": [
+            {
+              "name": "Microsoft.AspNetCore.App.Ref",
+              "version": "[3.1.10, 3.1.10]"
+            }
+          ],
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "/usr/share/dotnet/sdk/3.1.120/RuntimeIdentifierGraph.json"
+        }
+      }
+    }
+  }
+}

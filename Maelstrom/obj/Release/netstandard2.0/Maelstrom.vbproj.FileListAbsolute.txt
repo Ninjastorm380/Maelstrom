@@ -1,0 +1,12 @@
+/home/prydaran/RiderProjects/MaelstromProtocol/Maelstrom/bin/Release/netstandard2.0/Maelstrom.deps.json
+/home/prydaran/RiderProjects/MaelstromProtocol/Maelstrom/bin/Release/netstandard2.0/Maelstrom.dll
+/home/prydaran/RiderProjects/MaelstromProtocol/Maelstrom/obj/Release/netstandard2.0/Maelstrom.vbprojAssemblyReference.cache
+/home/prydaran/RiderProjects/MaelstromProtocol/Maelstrom/obj/Release/netstandard2.0/Maelstrom.AssemblyInfoInputs.cache
+/home/prydaran/RiderProjects/MaelstromProtocol/Maelstrom/obj/Release/netstandard2.0/Maelstrom.AssemblyInfo.vb
+/home/prydaran/RiderProjects/MaelstromProtocol/Maelstrom/obj/Release/netstandard2.0/Maelstrom.dll
+/home/prydaran/RiderProjects/Networking/Maelstrom/bin/Release/netstandard2.0/Maelstrom.deps.json
+/home/prydaran/RiderProjects/Networking/Maelstrom/bin/Release/netstandard2.0/Maelstrom.dll
+/home/prydaran/RiderProjects/Networking/Maelstrom/obj/Release/netstandard2.0/Maelstrom.vbprojAssemblyReference.cache
+/home/prydaran/RiderProjects/Networking/Maelstrom/obj/Release/netstandard2.0/Maelstrom.AssemblyInfoInputs.cache
+/home/prydaran/RiderProjects/Networking/Maelstrom/obj/Release/netstandard2.0/Maelstrom.AssemblyInfo.vb
+/home/prydaran/RiderProjects/Networking/Maelstrom/obj/Release/netstandard2.0/Maelstrom.dll

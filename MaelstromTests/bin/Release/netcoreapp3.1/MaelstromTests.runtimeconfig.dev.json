@@ -1,0 +1,8 @@
+{
+  "runtimeOptions": {
+    "additionalProbingPaths": [
+      "/home/prydaran/.dotnet/store/|arch|/|tfm|",
+      "/home/prydaran/.nuget/packages"
+    ]
+  }
+}

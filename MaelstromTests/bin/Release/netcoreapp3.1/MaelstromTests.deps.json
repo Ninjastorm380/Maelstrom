@@ -1,0 +1,36 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v3.1",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v3.1": {
+      "MaelstromTests/1.0.0": {
+        "dependencies": {
+          "Maelstrom": "1.0.0"
+        },
+        "runtime": {
+          "MaelstromTests.dll": {}
+        }
+      },
+      "Maelstrom/1.0.0": {
+        "runtime": {
+          "Maelstrom.dll": {}
+        }
+      }
+    }
+  },
+  "libraries": {
+    "MaelstromTests/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Maelstrom/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}
