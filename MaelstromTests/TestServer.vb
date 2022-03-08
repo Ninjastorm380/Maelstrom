@@ -12,7 +12,7 @@ Friend Class TestServer : Inherits ServerBase
 
     Protected Overrides Sub OnConnectionMain(Socket As Socket)
         Dim Governor as new Governor(10)
-        for x = 0 to 7
+        for x = 0 to 199
             CreateAsyncInstance(Socket,x)
         Next
         Do While Socket.Connected = True And Online = True
@@ -27,7 +27,22 @@ Friend Class TestServer : Inherits ServerBase
     Protected Overrides Sub OnServerOnline()
 
         for x= 0 to P.Length -1 
-            P(x)= {1,1,1,1}
+            P(x)= {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+                   1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+                   1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+                   1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+                   1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+                   1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+                   1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+                   1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+                   1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+                   1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+                   1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+                   1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+                   1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+                   1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+                   1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+                   1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}
         Next
         Console.WriteLine("DEBUG - SERVER: server is now online")
     End Sub

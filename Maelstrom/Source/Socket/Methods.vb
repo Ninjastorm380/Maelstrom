@@ -327,9 +327,7 @@ Public Partial Class Socket
         If Manager.Contains(Index) = False Then _
             Throw New ArgumentException("Parameter 'Index' referrs to a non-existent stream!")
         SyncLock ReadLock
-            If Manager.Value(Index).Length >= 16
-                Return True
-            Else
+            If Manager.Value(Index).Length < 16
                 If NetSocket.Available = 0 then Return False
                 If WaitForData(16) = False Then Return False
                 Read(SeekDataHeader, 0, 16)
@@ -345,14 +343,18 @@ Public Partial Class Socket
                     Manager.Value(SeekIsMuxed).Write(SeekPaddedData, SeekPaddedLength)
                 End If
                 Return (Index = SeekIsMuxed) And Manager.Contains(SeekIsMuxed)
+            Else
+                Manager.Value(Index).Read(SeekDataHeader, 16, 0)
+                UnpackInt32(SeekDataHeader, SeekPaddedLength, 0)
+                If Manager.Value(Index).Length < 16 + SeekPaddedLength Then Return False Else Return True 
             End If
         End SyncLock
     End Function
 
     Private Function WaitForData(Amount as Int32) as Boolean
         Dim WaitCounter = 0
-        Const WaitLimit As Integer = 1 * 1000
-        Dim WaitGovernor as new Governor(1000)
+        Const WaitLimit As Integer = 1 * 30
+        Dim WaitGovernor as new Governor(30)
         Do While True 
             Dim Available as Int32 = NetSocket.Available
             If WaitCounter = 0 Then
