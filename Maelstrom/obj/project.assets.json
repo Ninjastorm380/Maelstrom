@@ -185,11 +185,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/home/prydaran/RiderProjects/Networking/Maelstrom/Maelstrom.vbproj",
+      "projectUniqueName": "/home/prydaran/RiderProjects/Maelstrom/Maelstrom/Maelstrom.vbproj",
       "projectName": "Maelstrom",
-      "projectPath": "/home/prydaran/RiderProjects/Networking/Maelstrom/Maelstrom.vbproj",
+      "projectPath": "/home/prydaran/RiderProjects/Maelstrom/Maelstrom/Maelstrom.vbproj",
       "packagesPath": "/home/prydaran/.nuget/packages/",
-      "outputPath": "/home/prydaran/RiderProjects/Networking/Maelstrom/obj/",
+      "outputPath": "/home/prydaran/RiderProjects/Maelstrom/Maelstrom/obj/",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "/home/prydaran/.nuget/NuGet/NuGet.Config"

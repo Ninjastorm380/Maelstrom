@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "/home/prydaran/RiderProjects/Networking/MaelstromTests/MaelstromTests.vbproj": {}
+    "/home/prydaran/RiderProjects/Maelstrom/MaelstromTests/MaelstromTests.vbproj": {}
   },
   "projects": {
-    "/home/prydaran/RiderProjects/Networking/Maelstrom/Maelstrom.vbproj": {
+    "/home/prydaran/RiderProjects/Maelstrom/Maelstrom/Maelstrom.vbproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/home/prydaran/RiderProjects/Networking/Maelstrom/Maelstrom.vbproj",
+        "projectUniqueName": "/home/prydaran/RiderProjects/Maelstrom/Maelstrom/Maelstrom.vbproj",
         "projectName": "Maelstrom",
-        "projectPath": "/home/prydaran/RiderProjects/Networking/Maelstrom/Maelstrom.vbproj",
+        "projectPath": "/home/prydaran/RiderProjects/Maelstrom/Maelstrom/Maelstrom.vbproj",
         "packagesPath": "/home/prydaran/.nuget/packages/",
-        "outputPath": "/home/prydaran/RiderProjects/Networking/Maelstrom/obj/",
+        "outputPath": "/home/prydaran/RiderProjects/Maelstrom/Maelstrom/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "/home/prydaran/.nuget/NuGet/NuGet.Config"
@@ -57,14 +57,14 @@
         }
       }
     },
-    "/home/prydaran/RiderProjects/Networking/MaelstromTests/MaelstromTests.vbproj": {
+    "/home/prydaran/RiderProjects/Maelstrom/MaelstromTests/MaelstromTests.vbproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/home/prydaran/RiderProjects/Networking/MaelstromTests/MaelstromTests.vbproj",
+        "projectUniqueName": "/home/prydaran/RiderProjects/Maelstrom/MaelstromTests/MaelstromTests.vbproj",
         "projectName": "MaelstromTests",
-        "projectPath": "/home/prydaran/RiderProjects/Networking/MaelstromTests/MaelstromTests.vbproj",
+        "projectPath": "/home/prydaran/RiderProjects/Maelstrom/MaelstromTests/MaelstromTests.vbproj",
         "packagesPath": "/home/prydaran/.nuget/packages/",
-        "outputPath": "/home/prydaran/RiderProjects/Networking/MaelstromTests/obj/",
+        "outputPath": "/home/prydaran/RiderProjects/Maelstrom/MaelstromTests/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "/home/prydaran/.nuget/NuGet/NuGet.Config"
@@ -78,8 +78,8 @@
         "frameworks": {
           "netcoreapp3.1": {
             "projectReferences": {
-              "/home/prydaran/RiderProjects/Networking/Maelstrom/Maelstrom.vbproj": {
-                "projectPath": "/home/prydaran/RiderProjects/Networking/Maelstrom/Maelstrom.vbproj"
+              "/home/prydaran/RiderProjects/Maelstrom/Maelstrom/Maelstrom.vbproj": {
+                "projectPath": "/home/prydaran/RiderProjects/Maelstrom/Maelstrom/Maelstrom.vbproj"
               }
             }
           }

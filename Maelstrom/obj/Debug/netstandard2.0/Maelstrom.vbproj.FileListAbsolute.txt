@@ -14,3 +14,11 @@
 /home/prydaran/RiderProjects/Networking/Maelstrom/obj/Debug/netstandard2.0/Maelstrom.AssemblyInfo.vb
 /home/prydaran/RiderProjects/Networking/Maelstrom/obj/Debug/netstandard2.0/Maelstrom.dll
 /home/prydaran/RiderProjects/Networking/Maelstrom/obj/Debug/netstandard2.0/Maelstrom.pdb
+/home/prydaran/RiderProjects/Maelstrom/Maelstrom/obj/Debug/netstandard2.0/Maelstrom.vbprojAssemblyReference.cache
+/home/prydaran/RiderProjects/Maelstrom/Maelstrom/obj/Debug/netstandard2.0/Maelstrom.AssemblyInfoInputs.cache
+/home/prydaran/RiderProjects/Maelstrom/Maelstrom/obj/Debug/netstandard2.0/Maelstrom.AssemblyInfo.vb
+/home/prydaran/RiderProjects/Maelstrom/Maelstrom/obj/Debug/netstandard2.0/Maelstrom.dll
+/home/prydaran/RiderProjects/Maelstrom/Maelstrom/obj/Debug/netstandard2.0/Maelstrom.pdb
+/home/prydaran/RiderProjects/Maelstrom/Maelstrom/bin/Debug/netstandard2.0/Maelstrom.deps.json
+/home/prydaran/RiderProjects/Maelstrom/Maelstrom/bin/Debug/netstandard2.0/Maelstrom.dll
+/home/prydaran/RiderProjects/Maelstrom/Maelstrom/bin/Debug/netstandard2.0/Maelstrom.pdb

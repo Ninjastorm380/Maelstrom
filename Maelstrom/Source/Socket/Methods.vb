@@ -435,11 +435,18 @@ Public Partial Class Socket
         End SyncLock
     End Sub
 
-    Public Function StreamExists(Index as Int32)
+    Public Function StreamExists(Index as Int32) As Boolean
         If Index < 0 then Throw New ArgumentException("Index must be non-negative!")
         SyncLock DictLock
             Return Manager.Contains(Index)
         End SyncLock
+    End Function
+    
+    Public Function GetNextFreeStream as Int32
+        For x = 0 to Int32.MaxValue - 2
+            If StreamExists(x) = False Then Return x
+        Next
+        Return -1
     End Function
 
     Public Sub Dispose() Implements IDisposable.Dispose
