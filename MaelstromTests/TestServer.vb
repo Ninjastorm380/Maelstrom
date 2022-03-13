@@ -1,7 +1,7 @@
 Imports Maelstrom
 
 Friend Class TestServer : Inherits ServerBase
-    Dim P(4)() as Byte
+    Dim P(3)() as Byte
     Protected Overrides Sub OnConnectionErrored(Socket As Socket, SError As SocketError)
         Console.WriteLine("DEBUG - SERVER: client connection setup errored: " + SError.ToString())
     End Sub
@@ -12,7 +12,7 @@ Friend Class TestServer : Inherits ServerBase
 
     Protected Overrides Sub OnConnectionMain(Socket As Socket)
         Dim Governor as new Governor(10)
-        for x = 0 to 199
+        for x = 0 to 0
             CreateAsyncInstance(Socket,x)
         Next
         Do While Socket.Connected = True And Online = True
@@ -54,7 +54,7 @@ Friend Class TestServer : Inherits ServerBase
     Private Sub CreateAsyncInstance(Socket as Socket, Index as Int32)
         Dim AsyncThread as new Threading.Thread(
             Sub()
-                Dim Governor as new Governor(1000)
+                Dim Governor as new Governor(1)
                 Socket.CreateStream(Index)
                 Socket.WriteJagged(Index, P)
                 Do While Socket.Connected = True And Online = True

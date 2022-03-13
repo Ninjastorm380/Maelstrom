@@ -236,7 +236,7 @@ Public Partial Class Socket
                 ReDim Output(ReadIsJagged - 1)
                 ReadJaggedIndexer = 0
                 ReadJaggedCounter = 0
-                Do Until ReadJaggedIndexer = ReadIsJagged
+                Do Until ReadJaggedIndexer > ReadIsJagged - 1
                     UnpackInt32(ReadPaddedData, ReadJaggedIndexLength, ReadJaggedCounter)
                     ReadJaggedCounter += 4
                     Redim Output(ReadJaggedIndexer)(ReadJaggedIndexLength - 1)
@@ -277,7 +277,7 @@ Public Partial Class Socket
                 ReDim Output(ReadIsJagged - 1)
                 ReadJaggedIndexer = 0
                 ReadJaggedCounter = 0
-                Do Until ReadJaggedIndexer = ReadIsJagged
+                Do Until ReadJaggedIndexer > ReadIsJagged - 1
                     UnpackInt32(ReadPaddedData, ReadJaggedIndexLength, ReadJaggedCounter)
                     ReadJaggedCounter += 4
                     Redim Output(ReadJaggedIndexer)(ReadJaggedIndexLength - 1)
@@ -294,9 +294,9 @@ Public Partial Class Socket
         If Manager.Contains(Index) = False Then Throw New ArgumentException("Parameter 'Index' referrs to a non-existent stream!")
         If Input Is Nothing Then Throw New ArgumentException("Parameter 'Input' must not be nothing!")
         SyncLock WriteLock
-            WriteDataLength = input.Length*4
+            WriteDataLength = input.Length * 4
             WriteJaggedIndexer = 0
-            Do Until WriteJaggedIndexer = Input.Length - 1
+            Do Until WriteJaggedIndexer > Input.Length - 1
                 WriteDataLength += Input(WriteJaggedIndexer).Length
                 WriteJaggedIndexer += 1
             Loop
@@ -309,7 +309,7 @@ Public Partial Class Socket
 
             WriteJaggedIndexer = 0
             WriteJaggedCounter = 0
-            Do Until WriteJaggedIndexer = Input.Length - 1
+            Do Until WriteJaggedIndexer > Input.Length - 1
                 PackInt32(Input(WriteJaggedIndexer).Length, WritePaddedData, WriteJaggedCounter)
                 WriteJaggedCounter += 4
                 Buffer.BlockCopy(Input(WriteJaggedIndexer), 0, WritePaddedData, WriteJaggedCounter,
