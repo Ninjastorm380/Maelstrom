@@ -236,7 +236,7 @@ Public Partial Class Socket
                 ReDim Output(ReadIsJagged - 1)
                 ReadJaggedIndexer = 0
                 ReadJaggedCounter = 0
-                Do Until ReadJaggedIndexer = ReadIsJagged - 1
+                Do Until ReadJaggedIndexer = ReadIsJagged
                     UnpackInt32(ReadPaddedData, ReadJaggedIndexLength, ReadJaggedCounter)
                     ReadJaggedCounter += 4
                     Redim Output(ReadJaggedIndexer)(ReadJaggedIndexLength - 1)
@@ -277,7 +277,7 @@ Public Partial Class Socket
                 ReDim Output(ReadIsJagged - 1)
                 ReadJaggedIndexer = 0
                 ReadJaggedCounter = 0
-                Do Until ReadJaggedIndexer = ReadIsJagged - 1
+                Do Until ReadJaggedIndexer = ReadIsJagged
                     UnpackInt32(ReadPaddedData, ReadJaggedIndexLength, ReadJaggedCounter)
                     ReadJaggedCounter += 4
                     Redim Output(ReadJaggedIndexer)(ReadJaggedIndexLength - 1)
