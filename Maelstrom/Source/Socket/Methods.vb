@@ -353,7 +353,7 @@ Public Partial Class Socket
 
     Private Function WaitForData(Amount as Int32) as Boolean
         Dim WaitCounter = 0
-        Const WaitLimit As Integer = 1 * 30
+        Dim WaitLimit As Double = (ReadTimeout * 30)/1000
         Dim WaitGovernor as new Governor(30)
         Do While True 
             Dim Available as Int32 = NetSocket.Available

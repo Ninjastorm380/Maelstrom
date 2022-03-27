@@ -14,4 +14,5 @@ Public Partial Class Socket
 
     Private Property Disposed as boolean = False
     
+    Public Property ReadTimeout As Int32 = 5000
 End Class
