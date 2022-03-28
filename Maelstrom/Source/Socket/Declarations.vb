@@ -3,23 +3,34 @@ Imports System.Security.Cryptography
 Public Partial Class Socket
     Implements IDisposable
     
-    Private WriteDataHeader(15) as Byte
+    Private WriteDataHeader(31) as Byte
     Private WriteDataLength as Int32 = 0
     Private WritePaddedLength as Int32 = 0
-    Private WritePaddedData(8198144) as Byte
+    Private WritePaddedData(65535) as Byte
+    Private WriteBlockCount as Int32 = 0
+    Private WriteBlockSize as Int32 = 20000
+    Private WriteLoopIndexer as Int32 = 0
     
-    Private ReadDataHeader(15) as Byte
+    Private ReadDataHeader(31) as Byte
     Private ReadDataLength as Int32 = 0
     Private ReadPaddedLength as Int32 = 0
-    Private ReadPaddedData(8198144) as Byte
+    Private ReadPaddedData(65535) as Byte
     Private ReadIsJagged as Int32
     Private ReadIsMuxed as Int32
+    Private ReadBlockCount as Int32 = 0
+    Private ReadBlockSize as Int32 = 20000
+    Private ReadLoopIndexer as Int32 = 0
     
-    Private SeekDataHeader(15) as Byte
+    Private SeekDataHeader(31) as Byte
+    Private SeekDataLength as Int32 = 0
     Private SeekPaddedLength as Int32 = 0
-    Private SeekPaddedData(8198144) as Byte
+    Private SeekPaddedData(65535) as Byte
+    Private SeekIsJagged as Int32
     Private SeekIsMuxed as Int32
-
+    Private SeekBlockCount as Int32 = 0
+    Private SeekBlockSize as Int32 = 20000
+    Private SeekLoopIndexer as Int32 = 0
+    
     'miscellanious variables
     Private RemotePort as Int32
     Private ReadOnly Manager as new RapidDictionary
@@ -36,7 +47,6 @@ Public Partial Class Socket
     'read variables
     Private RemoteCSP as AesCryptoServiceProvider
     Private RemoteDecryptor as ICryptoTransform
-    Private RemoteStream as CryptoStream
     Private RemoteKey(31) as Byte
     Private RemoteIV(15) as Byte
     Private RemoteProtocolHandshake(63) as Byte
@@ -47,11 +57,11 @@ Public Partial Class Socket
     Private ReadJaggedIndexer as Int32 = 0
     Private ReadJaggedIndexLength as Int32 = 0
     Private ReadJaggedCounter as Int32 = 0
-
+    Private RemoteTransformBuffer(65535) as Byte
+    
     'write variables
     Private LocalCSP as AesCryptoServiceProvider
     Private LocalEncryptor as ICryptoTransform
-    Private LocalStream as CryptoStream
     Private LocalKey(31) as Byte
     Private LocalIV(15) as Byte
     Private LocalProtocolHandshake(63) as Byte
@@ -61,4 +71,5 @@ Public Partial Class Socket
     Private ReadOnly WriteLock as Object = New Object
     Private WriteJaggedIndexer as Int32 = 0
     Private WriteJaggedCounter as Int32 = 0
+    Private LocalTransformBuffer(65536) as Byte
 End Class

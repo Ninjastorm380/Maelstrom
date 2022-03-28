@@ -26,7 +26,7 @@ Friend Class TestServer : Inherits ServerBase
 
     Protected Overrides Sub OnServerOnline()
 
-        for x= 0 to P.Length -1 
+        for x= 0 to P.Length - 2
             P(x)= {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
                    1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
                    1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
@@ -44,6 +44,7 @@ Friend Class TestServer : Inherits ServerBase
                    1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
                    1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}
         Next
+        P(P.Length - 1) = io.File.ReadAllBytes("./DefaultBioBackground.rgb")
         Console.WriteLine("DEBUG - SERVER: server is now online")
     End Sub
 

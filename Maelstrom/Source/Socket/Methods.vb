@@ -8,12 +8,13 @@ Public Partial Class Socket
     Friend Function Init(TransportSocket as Sockets.Socket, ServerMode as Boolean) as Int32
 
         'Set up base variables
-        TransportSocket.SendBufferSize = Int32.MaxValue
-        TransportSocket.ReceiveBufferSize = Int32.MaxValue
-        NetStream = New NetworkStream(TransportSocket)
         NetSocket = TransportSocket
-        RemoteEndpoint = CType(TransportSocket.RemoteEndPoint, IPEndPoint)
-        LocalEndpoint = CType(TransportSocket.LocalEndPoint, IPEndPoint)
+        NetSocket.SendBufferSize = 200000
+        NetSocket.ReceiveBufferSize = 200000
+        NetSocket.Blocking = True
+        NetStream = New NetworkStream(NetSocket)
+        RemoteEndpoint = CType(NetSocket.RemoteEndPoint, IPEndPoint)
+        LocalEndpoint = CType(NetSocket.LocalEndPoint, IPEndPoint)
 
         'Determine the non-hosting port
         If ServerMode = True Then RemotePort = RemoteEndpoint.Port Else RemotePort = LocalEndpoint.Port
@@ -104,9 +105,6 @@ Public Partial Class Socket
 
         LocalEncryptor = LocalCSP.CreateEncryptor()
         RemoteDecryptor = RemoteCSP.CreateDecryptor()
-
-        LocalStream = new CryptoStream(NetStream, LocalEncryptor, CryptoStreamMode.Write)
-        RemoteStream = new CryptoStream(NetStream, RemoteDecryptor, CryptoStreamMode.Read)
     End Sub
 
     Private Sub Init(LocalSeed as Int32(), RemoteSeed as Int32(), Stream as NetworkStream)
@@ -124,33 +122,39 @@ Public Partial Class Socket
 
         LocalEncryptor = LocalCSP.CreateEncryptor()
         RemoteDecryptor = RemoteCSP.CreateDecryptor()
-
-        LocalStream = new CryptoStream(NetStream, LocalEncryptor, CryptoStreamMode.Write)
-        RemoteStream = new CryptoStream(NetStream, RemoteDecryptor, CryptoStreamMode.Read)
     End Sub
 
-    Private Sub Read(byref Buffer as Byte(), Offset as Int32, Count as Int32)
-        RemoteStream.Read(Buffer, Offset, Count)
+    
+    Private Sub Read(byval Buffer as Byte(), Offset as Int32, Count as Int32)
+        If RemoteTransformBuffer.Length < Count Then Redim RemoteTransformBuffer(Count - 1)
+        NetSocket.Receive(RemoteTransformBuffer,0,Count, SocketFlags.None)
+        RemoteDecryptor.TransformBlock(RemoteTransformBuffer,0, Count,Buffer,Offset)
+    End Sub
+    
+    
+    Private Sub Write(byval Buffer as Byte(), Offset as Int32, Count as Int32)
+        If LocalTransformBuffer.Length < Count Then Redim LocalTransformBuffer(Count - 1)
+        LocalEncryptor.TransformBlock(Buffer,Offset, Count,LocalTransformBuffer,0)
+        NetSocket.Send(LocalTransformBuffer, 0,Count,SocketFlags.None)
     End Sub
 
-    Private Sub Write(byref Buffer as Byte(), Offset as Int32, Count as Int32)
-        LocalStream.Write(Buffer, Offset, Count)
-    End Sub
 
     Public Sub ReadArray(Index as Int32, Byref Output as Byte())
         If Manager.Contains(Index) = False Then _
             Throw New ArgumentException("Parameter 'Index' referrs to a non-existent stream!")
         If Output IsNot Nothing Then Throw New ArgumentException("Parameter 'Output' must be nothing!")
         SyncLock ReadLock
-            If Manager.Value(Index).Length >= 16
-                Manager.Value(Index).Read(ReadDataHeader, 16, 0)
+            If Manager.Value(Index).Length >= 32
+                Manager.Value(Index).Read(ReadDataHeader, 32, 0)
                 UnpackInt32(ReadDataHeader, ReadPaddedLength, 0)
-                If Manager.Value(Index).Length < ReadPaddedLength Then Return
-                If ReadPaddedData.Length < ReadPaddedLength Then Redim ReadPaddedData(ReadPaddedLength - 1)
-                Manager.Value(Index).Read(ReadPaddedData, ReadPaddedLength, 16)
                 UnpackInt32(ReadDataHeader, ReadDataLength, 4)
                 UnpackInt32(ReadDataHeader, ReadIsMuxed, 8)
                 UnpackInt32(ReadDataHeader, ReadIsJagged, 12)
+                UnpackInt32(ReadDataHeader, ReadBlockCount, 16)
+                
+                If Manager.Value(Index).Length < ReadPaddedLength Then Return
+                If ReadPaddedData.Length < ReadPaddedLength Then Redim ReadPaddedData(ReadPaddedLength - 1)
+                Manager.Value(Index).Read(ReadPaddedData, ReadPaddedLength, 32)
 
                 If ReadIsJagged <> - 1 Then
                     Return
@@ -161,23 +165,32 @@ Public Partial Class Socket
 
                 ReDim Output(ReadDataLength - 1)
                 Buffer.BlockCopy(ReadPaddedData, 0, Output, 0, ReadDataLength)
-                Manager.Value(Index).Dump(ReadPaddedLength + 16)
+                Manager.Value(Index).Dump(ReadPaddedLength + 32)
             Else
-                If WaitForData(16) = False Then Throw New TimeoutException("Timed out while waiting for data!")
-                Read(ReadDataHeader, 0, 16)
+                If WaitForData(32) = False Then Throw New TimeoutException("Timed out while waiting for data!")
+                Read(ReadDataHeader, 0, 32)
                 UnpackInt32(ReadDataHeader, ReadPaddedLength, 0)
-
-                If WaitForData(ReadPaddedLength) = False Then _
-                    Throw New TimeoutException("Timed out while waiting for data!")
-                If ReadPaddedData.Length < ReadPaddedLength Then Redim ReadPaddedData(ReadPaddedLength - 1)
-                Read(ReadPaddedData, 0, ReadPaddedLength)
                 UnpackInt32(ReadDataHeader, ReadDataLength, 4)
                 UnpackInt32(ReadDataHeader, ReadIsMuxed, 8)
                 UnpackInt32(ReadDataHeader, ReadIsJagged, 12)
-
+                UnpackInt32(ReadDataHeader, ReadBlockCount, 16)
+                
+                If ReadPaddedData.Length < ReadPaddedLength Then Redim ReadPaddedData(ReadPaddedLength - 1)
+                If ReadBlockCount = 1 Then
+                    If WaitForData(ReadPaddedLength) = False Then Throw New TimeoutException("Timed out while waiting for data!")
+                    Read(ReadPaddedData, 0, ReadPaddedLength)
+                Else 
+                    ReadLoopIndexer = 0
+                    Do until ReadLoopIndexer >= ReadPaddedLength
+                        If WaitForData(ReadBlockSize) = False Then Throw New TimeoutException("Timed out while waiting for data!")
+                        Read(ReadPaddedData, ReadLoopIndexer, ReadBlockSize)
+                        ReadLoopIndexer += ReadBlockSize
+                    Loop
+                End If
+                
                 If ReadIsJagged <> - 1 Then
                     If Manager.Contains(ReadIsMuxed) = True
-                        Manager.Value(ReadIsMuxed).Write(ReadDataHeader, 16)
+                        Manager.Value(ReadIsMuxed).Write(ReadDataHeader, 32)
                         Manager.Value(ReadIsMuxed).Write(ReadPaddedData, ReadPaddedLength)
                     End If
                     Return
@@ -185,17 +198,18 @@ Public Partial Class Socket
 
                 If Index <> ReadIsMuxed Then
                     If Manager.Contains(ReadIsMuxed) = True
-                        Manager.Value(ReadIsMuxed).Write(ReadDataHeader, 16)
+                        Manager.Value(ReadIsMuxed).Write(ReadDataHeader, 32)
                         Manager.Value(ReadIsMuxed).Write(ReadPaddedData, ReadPaddedLength)
                     End If
                     Return
                 End If
 
                 ReDim Output(ReadDataLength - 1)
-                Buffer.BlockCopy(ReadPaddedData, 16, Output, 0, ReadDataLength)
+                Buffer.BlockCopy(ReadPaddedData, 0, Output, 0, ReadDataLength)
             End If
         End SyncLock
     End Sub
+
 
     Public Sub WriteArray(Index as Int32, Byref Input as Byte())
         If Manager.Contains(Index) = False Then _
@@ -204,14 +218,32 @@ Public Partial Class Socket
         SyncLock WriteLock
             WriteDataLength = Input.Length
             WritePaddedLength = GetNearestBlockSize(WriteDataLength)
+            WriteBlockCount = Math.Ceiling(WritePaddedLength / WriteBlockSize)
+            
+            If WriteBlockCount > 1 Then
+                WritePaddedLength = WriteBlockSize * WriteBlockCount
+            End If
+            
+            
             If WritePaddedData.Length < WritePaddedLength Then Redim WritePaddedData(WritePaddedLength - 1)
             Buffer.BlockCopy(Input, 0, WritePaddedData, 0, WriteDataLength)
             PackInt32(WritePaddedLength, WriteDataHeader, 0)
             PackInt32(WriteDataLength, WriteDataHeader, 4)
             PackInt32(Index, WriteDataHeader, 8)
             PackInt32(-1, WriteDataHeader, 12)
-            Write(WriteDataHeader, 0, 16)
-            Write(WritePaddedData, 0, WritePaddedLength)
+            PackInt32(WriteBlockCount, WriteDataHeader, 16)
+            Write(WriteDataHeader, 0, 32)
+            If WriteBlockCount = 1 Then
+                Write(WritePaddedData, 0, WritePaddedLength)
+            Else 
+                WriteLoopIndexer = 0
+                Do until WriteLoopIndexer >= WritePaddedLength
+                    Write(WritePaddedData, WriteLoopIndexer, WriteBlockSize)
+                    WriteLoopIndexer += WriteBlockSize
+                Loop
+            End If
+            
+
         End SyncLock
     End Sub
 
@@ -220,15 +252,17 @@ Public Partial Class Socket
             Throw New ArgumentException("Parameter 'Index' referrs to a non-existent stream!")
         If Output IsNot Nothing Then Throw New ArgumentException("Parameter 'Output' must be nothing!")
         SyncLock ReadLock
-            If Manager.Value(Index).Length >= 16
-                Manager.Value(Index).Read(ReadDataHeader, 16, 0)
+            If Manager.Value(Index).Length >= 32
+                Manager.Value(Index).Read(ReadDataHeader, 32, 0)
                 UnpackInt32(ReadDataHeader, ReadPaddedLength, 0)
-                If Manager.Value(Index).Length < ReadPaddedLength Then Return
-                If ReadPaddedData.Length < ReadPaddedLength Then Redim ReadPaddedData(ReadPaddedLength - 1)
-                Manager.Value(Index).Read(ReadPaddedData, ReadPaddedLength, 16)
                 UnpackInt32(ReadDataHeader, ReadDataLength, 4)
                 UnpackInt32(ReadDataHeader, ReadIsMuxed, 8)
                 UnpackInt32(ReadDataHeader, ReadIsJagged, 12)
+                UnpackInt32(ReadDataHeader, ReadBlockCount, 16)
+                
+                If Manager.Value(Index).Length < ReadPaddedLength Then Return
+                If ReadPaddedData.Length < ReadPaddedLength Then Redim ReadPaddedData(ReadPaddedLength - 1)
+                Manager.Value(Index).Read(ReadPaddedData, ReadPaddedLength, 32)
 
                 If ReadIsJagged = - 1 Then Return
                 If Index <> ReadIsMuxed Then Return
@@ -245,22 +279,32 @@ Public Partial Class Socket
                     ReadJaggedCounter += ReadJaggedIndexLength
                     ReadJaggedIndexer += 1
                 Loop
-                Manager.Value(ReadIsMuxed).Dump(ReadPaddedLength + 16)
+                Manager.Value(ReadIsMuxed).Dump(ReadPaddedLength + 32)
             Else
-                If WaitForData(16) = False Then Throw New TimeoutException("Timed out while waiting for data!")
-                Read(ReadDataHeader, 0, 16)
+                If WaitForData(32) = False Then Throw New TimeoutException("Timed out while waiting for data!")
+                Read(ReadDataHeader, 0, 32)
                 UnpackInt32(ReadDataHeader, ReadPaddedLength, 0)
-
-                If WaitForData(ReadPaddedLength) = False Then Throw New TimeoutException("Timed out while waiting for data!")
-                If ReadPaddedData.Length < ReadPaddedLength Then Redim ReadPaddedData(ReadPaddedLength - 1)
-                Read(ReadPaddedData, 0, ReadPaddedLength)
                 UnpackInt32(ReadDataHeader, ReadDataLength, 4)
                 UnpackInt32(ReadDataHeader, ReadIsMuxed, 8)
                 UnpackInt32(ReadDataHeader, ReadIsJagged, 12)
-
+                UnpackInt32(ReadDataHeader, ReadBlockCount, 16)
+                
+                If ReadPaddedData.Length < ReadPaddedLength Then Redim ReadPaddedData(ReadPaddedLength - 1)
+                If ReadBlockCount = 1 Then
+                    If WaitForData(ReadPaddedLength) = False Then Throw New TimeoutException("Timed out while waiting for data!")
+                    Read(ReadPaddedData, 0, ReadPaddedLength)
+                Else 
+                    ReadLoopIndexer = 0
+                    Do until ReadLoopIndexer >= ReadPaddedLength
+                        If WaitForData(ReadBlockSize) = False Then Throw New TimeoutException("Timed out while waiting for data!")
+                        Read(ReadPaddedData, ReadLoopIndexer, ReadBlockSize)
+                        ReadLoopIndexer += ReadBlockSize
+                    Loop
+                End If
+                
                 If ReadIsJagged = - 1 Then
                     If Manager.Contains(ReadIsMuxed) = True
-                        Manager.Value(ReadIsMuxed).Write(ReadDataHeader, 16)
+                        Manager.Value(ReadIsMuxed).Write(ReadDataHeader, 32)
                         Manager.Value(ReadIsMuxed).Write(ReadPaddedData, ReadPaddedLength)
                     End If
                     Return
@@ -268,7 +312,7 @@ Public Partial Class Socket
 
                 If Index <> ReadIsMuxed Then
                     If Manager.Contains(ReadIsMuxed) = True
-                        Manager.Value(ReadIsMuxed).Write(ReadDataHeader, 16)
+                        Manager.Value(ReadIsMuxed).Write(ReadDataHeader, 32)
                         Manager.Value(ReadIsMuxed).Write(ReadPaddedData, ReadPaddedLength)
                     End If
                     Return
@@ -301,12 +345,19 @@ Public Partial Class Socket
                 WriteJaggedIndexer += 1
             Loop
             WritePaddedLength = GetNearestBlockSize(WriteDataLength)
+            WriteBlockCount = Math.Ceiling(WritePaddedLength / WriteBlockSize)
+            
+            If WriteBlockCount > 1 Then
+                WritePaddedLength = WriteBlockSize * WriteBlockCount
+            End If
+            
+            
             If WritePaddedData.Length < WritePaddedLength Then Redim WritePaddedData(WritePaddedLength - 1)
             PackInt32(WritePaddedLength, WriteDataHeader, 0)
             PackInt32(WriteDataLength, WriteDataHeader, 4)
             PackInt32(Index, WriteDataHeader, 8)
             PackInt32(Input.Length, WriteDataHeader, 12)
-
+            PackInt32(WriteBlockCount, WriteDataHeader, 16)
             WriteJaggedIndexer = 0
             WriteJaggedCounter = 0
             Do Until WriteJaggedIndexer > Input.Length - 1
@@ -318,8 +369,16 @@ Public Partial Class Socket
                 WriteJaggedIndexer += 1
             Loop
 
-            Write(WriteDataHeader, 0, 16)
-            Write(WritePaddedData, 0, WritePaddedLength)
+            Write(WriteDataHeader, 0, 32)
+            If WriteBlockCount = 1 Then
+                Write(WritePaddedData, 0, WritePaddedLength)
+            Else 
+                WriteLoopIndexer = 0
+                Do until WriteLoopIndexer >= WritePaddedLength
+                    Write(WritePaddedData, WriteLoopIndexer, WriteBlockSize)
+                    WriteLoopIndexer += WriteBlockSize
+                Loop
+            End If
         End SyncLock
     End Sub
 
@@ -327,26 +386,38 @@ Public Partial Class Socket
         If Manager.Contains(Index) = False Then _
             Throw New ArgumentException("Parameter 'Index' referrs to a non-existent stream!")
         SyncLock ReadLock
-            If Manager.Value(Index).Length < 16
+            If Manager.Value(Index).Length < 32
                 If NetSocket.Available = 0 then Return False
-                If WaitForData(16) = False Then Return False
-                Read(SeekDataHeader, 0, 16)
+                If WaitForData(32) = False Then Return False
+                Read(SeekDataHeader, 0, 32)
                 UnpackInt32(SeekDataHeader, SeekPaddedLength, 0)
-
-                If WaitForData(SeekPaddedLength) = False Then Throw New TimeoutException("Timed out while waiting for data!")
-                If SeekPaddedData.Length < SeekPaddedLength Then Redim SeekPaddedData(SeekPaddedLength - 1)
-                Read(SeekPaddedData, 0, SeekPaddedLength)
+                UnpackInt32(SeekDataHeader, SeekDataLength, 4)
                 UnpackInt32(SeekDataHeader, SeekIsMuxed, 8)
+                UnpackInt32(SeekDataHeader, SeekIsJagged, 12)
+                UnpackInt32(SeekDataHeader, SeekBlockCount, 16)
+                
+                If SeekPaddedData.Length < SeekPaddedLength Then Redim SeekPaddedData(SeekPaddedLength - 1)
+                If SeekBlockCount = 1 Then
+                    If WaitForData(SeekPaddedLength) = False Then Throw New TimeoutException("Timed out while waiting for data!")
+                    Read(SeekPaddedData, 0, SeekPaddedLength)
+                Else 
+                    SeekLoopIndexer = 0
+                    Do until SeekLoopIndexer >= SeekPaddedLength
+                        If WaitForData(SeekBlockSize) = False Then Throw New TimeoutException("Timed out while waiting for data!")
+                        Read(SeekPaddedData, SeekLoopIndexer, SeekBlockSize)
+                        SeekLoopIndexer += SeekBlockSize
+                    Loop
+                End If
 
                 If Manager.Contains(SeekIsMuxed) = True
-                    Manager.Value(SeekIsMuxed).Write(SeekDataHeader, 16)
+                    Manager.Value(SeekIsMuxed).Write(SeekDataHeader, 32)
                     Manager.Value(SeekIsMuxed).Write(SeekPaddedData, SeekPaddedLength)
                 End If
                 Return (Index = SeekIsMuxed) And Manager.Contains(SeekIsMuxed)
             Else
-                Manager.Value(Index).Read(SeekDataHeader, 16, 0)
+                Manager.Value(Index).Read(SeekDataHeader, 32, 0)
                 UnpackInt32(SeekDataHeader, SeekPaddedLength, 0)
-                If Manager.Value(Index).Length < 16 + SeekPaddedLength Then Return False Else Return True 
+                If Manager.Value(Index).Length < 32 + SeekPaddedLength Then Return False Else Return True 
             End If
         End SyncLock
     End Function
@@ -451,8 +522,6 @@ Public Partial Class Socket
 
     Public Sub Dispose() Implements IDisposable.Dispose
         If Disposed = False
-            Try : LocalStream.Dispose() : Catch : End Try
-            Try : RemoteStream.Dispose() : Catch : End Try
             Try : LocalEncryptor.Dispose() : Catch : End Try
             Try : RemoteDecryptor.Dispose() : Catch : End Try
             Try : LocalCSP.Dispose() : Catch : End Try

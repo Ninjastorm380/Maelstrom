@@ -15,7 +15,7 @@ Friend Class TestClient : Inherits ClientBase
 
     Protected Overrides Sub OnConnectionMain(Socket As Socket)
         Dim Governor as new Governor(10)
-        for x= 0 to P.Length -1 
+        for x= 0 to P.Length - 2
             P(x)= {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
                    1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
                    1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
@@ -33,6 +33,7 @@ Friend Class TestClient : Inherits ClientBase
                    1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
                    1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}
         Next
+        P(P.Length - 1) = io.File.ReadAllBytes("./DefaultBioBackground.rgb")
         for x = 0 to 0
             CreateAsyncInstance(Socket,x)
         Next
