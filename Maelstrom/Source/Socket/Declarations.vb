@@ -6,18 +6,18 @@ Public Partial Class Socket
     Private WriteDataHeader(15) as Byte
     Private WriteDataLength as Int32 = 0
     Private WritePaddedLength as Int32 = 0
-    Private WritePaddedData(0) as Byte
+    Private WritePaddedData(8198144) as Byte
     
     Private ReadDataHeader(15) as Byte
     Private ReadDataLength as Int32 = 0
     Private ReadPaddedLength as Int32 = 0
-    Private ReadPaddedData(0) as Byte
+    Private ReadPaddedData(8198144) as Byte
     Private ReadIsJagged as Int32
     Private ReadIsMuxed as Int32
     
     Private SeekDataHeader(15) as Byte
     Private SeekPaddedLength as Int32 = 0
-    Private SeekPaddedData(0) as Byte
+    Private SeekPaddedData(8198144) as Byte
     Private SeekIsMuxed as Int32
 
     'miscellanious variables
