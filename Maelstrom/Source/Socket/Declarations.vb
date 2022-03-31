@@ -8,7 +8,7 @@ Public Partial Class Socket
     Private WritePaddedLength as Int32 = 0
     Private WritePaddedData(65535) as Byte
     Private WriteBlockCount as Int32 = 0
-    Private WriteBlockSize as Int32 = 20000
+    Private WriteBlockSize as Int32 = 2000
     Private WriteLoopIndexer as Int32 = 0
     
     Private ReadDataHeader(31) as Byte
@@ -18,7 +18,7 @@ Public Partial Class Socket
     Private ReadIsJagged as Int32
     Private ReadIsMuxed as Int32
     Private ReadBlockCount as Int32 = 0
-    Private ReadBlockSize as Int32 = 20000
+    Private ReadBlockSize as Int32 = 2000
     Private ReadLoopIndexer as Int32 = 0
     
     Private SeekDataHeader(31) as Byte
@@ -28,7 +28,7 @@ Public Partial Class Socket
     Private SeekIsJagged as Int32
     Private SeekIsMuxed as Int32
     Private SeekBlockCount as Int32 = 0
-    Private SeekBlockSize as Int32 = 20000
+    Private SeekBlockSize as Int32 = 2000
     Private SeekLoopIndexer as Int32 = 0
     
     'miscellanious variables
