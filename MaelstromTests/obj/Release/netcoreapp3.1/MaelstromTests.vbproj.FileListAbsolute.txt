@@ -31,9 +31,11 @@
 /home/prydaran/RiderProjects/Maelstrom/MaelstromTests/bin/Release/netcoreapp3.1/MaelstromTests.dll
 /home/prydaran/RiderProjects/Maelstrom/MaelstromTests/bin/Release/netcoreapp3.1/MaelstromTests.pdb
 /home/prydaran/RiderProjects/Maelstrom/MaelstromTests/bin/Release/netcoreapp3.1/Maelstrom.dll
-/home/prydaran/RiderProjects/Maelstrom/MaelstromTests/obj/Release/netcoreapp3.1/MaelstromTests.vbprojAssemblyReference.cache
 /home/prydaran/RiderProjects/Maelstrom/MaelstromTests/obj/Release/netcoreapp3.1/MaelstromTests.AssemblyInfoInputs.cache
 /home/prydaran/RiderProjects/Maelstrom/MaelstromTests/obj/Release/netcoreapp3.1/MaelstromTests.AssemblyInfo.vb
 /home/prydaran/RiderProjects/Maelstrom/MaelstromTests/obj/Release/netcoreapp3.1/MaelstromTests.vbproj.CopyComplete
 /home/prydaran/RiderProjects/Maelstrom/MaelstromTests/obj/Release/netcoreapp3.1/MaelstromTests.dll
 /home/prydaran/RiderProjects/Maelstrom/MaelstromTests/obj/Release/netcoreapp3.1/MaelstromTests.pdb
+/home/prydaran/RiderProjects/Maelstrom/MaelstromTests/obj/Release/netcoreapp3.1/MaelstromTests.vbproj.AssemblyReference.cache
+/home/prydaran/RiderProjects/Maelstrom/MaelstromTests/obj/Release/netcoreapp3.1/MaelstromTests.vbproj.CoreCompileInputs.cache
+/home/prydaran/RiderProjects/Maelstrom/MaelstromTests/obj/Release/netcoreapp3.1/MaelstromTests.genruntimeconfig.cache

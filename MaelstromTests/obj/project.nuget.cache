@@ -1,10 +1,12 @@
 {
   "version": 2,
-  "dgSpecHash": "/KOPbe6IN+QByXvPdTQo0LTREBI/yhyRf5LAbDvOOmn32ALhzkYlef/JJq0FPXAx83yxnrskPn43ezlEpBJDwA==",
+  "dgSpecHash": "VdL87S1re+aUAWziGuHBf1Zk19cgBaWhfuO3pVaYTbW4X2Yb2c/r4Pn2dDhqZxqPzF7QO4EB4QV2KGCYUimcbA==",
   "success": true,
   "projectFilePath": "/home/prydaran/RiderProjects/Maelstrom/MaelstromTests/MaelstromTests.vbproj",
   "expectedPackageFiles": [
-    "/home/prydaran/.nuget/packages/microsoft.aspnetcore.app.ref/3.1.10/microsoft.aspnetcore.app.ref.3.1.10.nupkg.sha512"
+    "/home/prydaran/.nuget/packages/microsoft.netcore.app.ref/3.1.0/microsoft.netcore.app.ref.3.1.0.nupkg.sha512",
+    "/home/prydaran/.nuget/packages/microsoft.aspnetcore.app.ref/3.1.10/microsoft.aspnetcore.app.ref.3.1.10.nupkg.sha512",
+    "/home/prydaran/.nuget/packages/microsoft.netcore.app.host.linux-x64/3.1.11/microsoft.netcore.app.host.linux-x64.3.1.11.nupkg.sha512"
   ],
   "logs": []
 }

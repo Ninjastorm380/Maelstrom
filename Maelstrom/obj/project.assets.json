@@ -231,7 +231,7 @@
         ],
         "assetTargetFallback": true,
         "warn": true,
-        "runtimeIdentifierGraphPath": "/usr/share/dotnet/sdk/3.1.120/RuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "/usr/lib/mono/msbuild/Current/bin/RuntimeIdentifierGraph.json"
       }
     }
   }
