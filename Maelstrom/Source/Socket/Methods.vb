@@ -123,7 +123,6 @@ Public Partial Class Socket
         LocalEncryptor = LocalCSP.CreateEncryptor()
         RemoteDecryptor = RemoteCSP.CreateDecryptor()
     End Sub
-
     
     Private Sub Read(byval Buffer as Byte(), Offset as Int32, Count as Int32)
         If RemoteTransformBuffer.Length < Count Then Redim RemoteTransformBuffer(Count - 1)
@@ -131,17 +130,14 @@ Public Partial Class Socket
         RemoteDecryptor.TransformBlock(RemoteTransformBuffer,0, Count,Buffer,Offset)
     End Sub
     
-    
     Private Sub Write(byval Buffer as Byte(), Offset as Int32, Count as Int32)
         If LocalTransformBuffer.Length < Count Then Redim LocalTransformBuffer(Count - 1)
         LocalEncryptor.TransformBlock(Buffer,Offset, Count,LocalTransformBuffer,0)
         NetSocket.Send(LocalTransformBuffer, 0,Count,SocketFlags.None)
     End Sub
-
-
+    
     Public Sub ReadArray(Index as Int32, Byref Output as Byte())
-        If Manager.Contains(Index) = False Then _
-            Throw New ArgumentException("Parameter 'Index' referrs to a non-existent stream!")
+        If Manager.Contains(Index) = False Then Throw New ArgumentException("Parameter 'Index' referrs to a non-existent stream!")
         If Output IsNot Nothing Then Throw New ArgumentException("Parameter 'Output' must be nothing!")
         SyncLock ReadLock
             If Manager.Value(Index).Length >= 32
@@ -209,8 +205,7 @@ Public Partial Class Socket
             End If
         End SyncLock
     End Sub
-
-
+    
     Public Sub WriteArray(Index as Int32, Byref Input as Byte())
         If Manager.Contains(Index) = False Then _
             Throw New ArgumentException("Parameter 'Index' referrs to a non-existent stream!")
