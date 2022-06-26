@@ -1,10 +1,8 @@
 /home/prydaran/RiderProjects/Temp/Maelstrom/Maelstrom/bin/Debug/netstandard2.0/Maelstrom.deps.json
 /home/prydaran/RiderProjects/Temp/Maelstrom/Maelstrom/bin/Debug/netstandard2.0/Maelstrom.dll
 /home/prydaran/RiderProjects/Temp/Maelstrom/Maelstrom/bin/Debug/netstandard2.0/Maelstrom.pdb
-/home/prydaran/RiderProjects/Temp/Maelstrom/Maelstrom/obj/Debug/netstandard2.0/Maelstrom.vbproj.AssemblyReference.cache
 /home/prydaran/RiderProjects/Temp/Maelstrom/Maelstrom/obj/Debug/netstandard2.0/Maelstrom.AssemblyInfoInputs.cache
 /home/prydaran/RiderProjects/Temp/Maelstrom/Maelstrom/obj/Debug/netstandard2.0/Maelstrom.AssemblyInfo.vb
-/home/prydaran/RiderProjects/Temp/Maelstrom/Maelstrom/obj/Debug/netstandard2.0/Maelstrom.vbproj.CoreCompileInputs.cache
 /home/prydaran/RiderProjects/Temp/Maelstrom/Maelstrom/obj/Debug/netstandard2.0/Maelstrom.dll
 /home/prydaran/RiderProjects/Temp/Maelstrom/Maelstrom/obj/Debug/netstandard2.0/Maelstrom.pdb
-/home/prydaran/RiderProjects/Temp/Maelstrom/Maelstrom/obj/Debug/netstandard2.0/Maelstrom.GeneratedMSBuildEditorConfig.editorconfig
+/home/prydaran/RiderProjects/Temp/Maelstrom/Maelstrom/obj/Debug/netstandard2.0/Maelstrom.vbprojAssemblyReference.cache

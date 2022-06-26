@@ -1,0 +1,42 @@
+Imports System
+Imports System.Net
+
+Module Program
+    Dim TC as new TestClient
+    Dim TS as new TestServer
+    Dim EP as New IPEndPoint(IPAddress.Parse("0.0.0.0"),55630)
+    Sub Main(args As String())
+        Console.Write("IP: ")
+        Dim IP as String = Console.ReadLine()
+        Console.Write("Port: ")
+        Dim Port as Int32 = Console.ReadLine()
+        Console.Write("Mode: ")
+        Dim Mode as String = Console.ReadLine()
+        Console.Write("Rate: ")
+        Dim Rate as Double = Console.ReadLine()
+        
+        EP = New IPEndPoint(IPAddress.Parse(IP), Port)
+        If Mode.ToLower() = "client"
+            TC.SetSpeed(Rate)
+            TC.Connect(EP)
+            Console.WriteLine("Client connected. Press any key to disconnect and close.")
+            Console.Read()
+            TC.Disconnect()
+        ElseIf Mode.ToLower() = "server"
+            TS.SetSpeed(Rate)
+            TS.Start(EP)
+            Console.WriteLine("Server online. Press any key to disconnect and close.")
+            Console.Read()
+            TS.Stop()
+        ElseIf Mode.ToLower() = "both"
+            TS.SetSpeed(Rate)
+            TC.SetSpeed(Rate)
+            TS.Start(EP)
+            TC.Connect(EP)
+            Console.WriteLine("Server started and client connected. Press any key to disconnect, shutdown, and close.")
+            Console.Read()
+            TC.Disconnect()
+            TS.Stop()
+        End If
+    End Sub
+End Module

@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "dgSpecHash": "in6IIWIy6xUkrJOf9fhBarlY3G8mGs8BaUo1yXm4fzZ/ruzSsurTIGSVv4RkKyMaVP+UMYVPKtU+p+rl4ux/OQ==",
+  "success": true,
+  "projectFilePath": "/home/prydaran/RiderProjects/Maelstrom/MaelstromTests Core31/MaelstromTests Core31.vbproj",
+  "expectedPackageFiles": [
+    "/home/prydaran/.nuget/packages/microsoft.aspnetcore.app.ref/3.1.10/microsoft.aspnetcore.app.ref.3.1.10.nupkg.sha512"
+  ],
+  "logs": []
+}
