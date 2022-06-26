@@ -1,527 +1,415 @@
+
+Imports System.IO
 Imports System.Net
 Imports System.Net.Sockets
 Imports System.Security.Cryptography
+Imports System.Threading
 
 Public Partial Class Socket
     Implements IDisposable
 
-    Friend Function Init(TransportSocket as Sockets.Socket, ServerMode as Boolean) as Int32
-
-        'Set up base variables
-        NetSocket = TransportSocket
-        NetSocket.SendBufferSize = 200000
-        NetSocket.ReceiveBufferSize = 200000
-        NetSocket.Blocking = True
-        NetStream = New NetworkStream(NetSocket)
-        RemoteEndpoint = CType(NetSocket.RemoteEndPoint, IPEndPoint)
-        LocalEndpoint = CType(NetSocket.LocalEndPoint, IPEndPoint)
-
-        'Determine the non-hosting port
-        If ServerMode = True Then RemotePort = RemoteEndpoint.Port Else RemotePort = LocalEndpoint.Port
-
-        'Initialize for handshake
-        Dim UTCTimestamp as DateTime = DateTime.UtcNow()
-        Init({UTCTimestamp.Year,
-              UTCTimestamp.Month,
-              UTCTimestamp.Day,
-              UTCTimestamp.Hour,
-              UTCTimestamp.Minute,
-              Math.Floor(UTCTimestamp.Second/3),
-              RemotePort}, NetStream, ServerMode)
-
-        'Perform handshake
-        LocalTimestamp = DateTime.Now
-        Buffer.BlockCopy(MaelstromHandshakeHeader, 0, LocalProtocolHandshake, 0, 16)
-        Buffer.BlockCopy(BitConverter.GetBytes(MaelstromHandshakeVersion(0)), 0, LocalProtocolHandshake, 16, 4)
-        Buffer.BlockCopy(BitConverter.GetBytes(MaelstromHandshakeVersion(1)), 0, LocalProtocolHandshake, 20, 4)
-        Buffer.BlockCopy(BitConverter.GetBytes(MaelstromHandshakeVersion(2)), 0, LocalProtocolHandshake, 24, 4)
-        Buffer.BlockCopy(BitConverter.GetBytes(MaelstromHandshakeVersion(3)), 0, LocalProtocolHandshake, 28, 4)
-        PackTimestamp(LocalTimestamp, LocalProtocolHandshake, 32)
-
-        Write(LocalProtocolHandshake, 0, 64)
-        Read(RemoteProtocolHandshake, 0, 64)
-
-        For Index = 0 to MaelstromHandshakeHeader.Length - 1
-            if LocalProtocolHandshake(Index) <> RemoteProtocolHandshake(Index) Then
-                Dispose()
-                Return 1
-            End If
-        Next
-
-        Dim RemoteVersion(3) as Int32
-        UnpackInt32(RemoteProtocolHandshake, RemoteVersion(0), 16)
-        UnpackInt32(RemoteProtocolHandshake, RemoteVersion(1), 20)
-        UnpackInt32(RemoteProtocolHandshake, RemoteVersion(2), 24)
-        UnpackInt32(RemoteProtocolHandshake, RemoteVersion(3), 28)
-        For Index = 0 to MaelstromHandshakeVersion.Length - 1
-            if MaelstromHandshakeVersion(Index) <> RemoteVersion(Index)
-                Dispose()
-                Return 2
-            End If
-        Next
-
-        UnpackTimestamp(RemoteProtocolHandshake, RemoteTimestamp, 32)
-
-        'Re-initialize with full functionality
-        Init({LocalTimestamp.Year,
-              LocalTimestamp.Month,
-              LocalTimestamp.Day,
-              LocalTimestamp.Hour,
-              LocalTimestamp.Minute,
-              LocalTimestamp.Second,
-              LocalTimestamp.Millisecond,
-              RemotePort},
-             {RemoteTimestamp.Year,
-              RemoteTimestamp.Month,
-              RemoteTimestamp.Day,
-              RemoteTimestamp.Hour,
-              RemoteTimestamp.Minute,
-              RemoteTimestamp.Second,
-              RemoteTimestamp.Millisecond,
-              RemotePort},
-             NetStream)
-
-        Return 0
-    End Function
-
-    Private Sub Init(LocalSeed as Int32(), Stream as NetworkStream, Server as Boolean)
-        LocalRNGMan = New RNG(LocalSeed)
-        NetStream = Stream
-
-        If Server = True Then
-            LocalRNGMan.Next(LocalKey)
-            LocalRNGMan.Next(LocalIV)
-            LocalRNGMan.Next(RemoteKey)
-            LocalRNGMan.Next(RemoteIV)
-        Else
-            LocalRNGMan.Next(RemoteKey)
-            LocalRNGMan.Next(RemoteIV)
-            LocalRNGMan.Next(LocalKey)
-            LocalRNGMan.Next(LocalIV)
-        End If
-
-        LocalCSP = New AesCryptoServiceProvider With {.Key = LocalKey, .IV = LocalIV, .Padding = PaddingMode.None}
-        RemoteCSP = New AesCryptoServiceProvider With {.Key = RemoteKey, .IV = RemoteIV, .Padding = PaddingMode.None}
-
-        LocalEncryptor = LocalCSP.CreateEncryptor()
-        RemoteDecryptor = RemoteCSP.CreateDecryptor()
-    End Sub
-
-    Private Sub Init(LocalSeed as Int32(), RemoteSeed as Int32(), Stream as NetworkStream)
-        LocalRNGMan = New RNG(LocalSeed)
-        RemoteRNGMan = New RNG(RemoteSeed)
-        NetStream = Stream
-
-        LocalRNGMan.Next(LocalKey)
-        LocalRNGMan.Next(LocalIV)
-        RemoteRNGMan.Next(RemoteKey)
-        RemoteRNGMan.Next(RemoteIV)
-
-        LocalCSP = New AesCryptoServiceProvider With {.Key = LocalKey, .IV = LocalIV, .Padding = PaddingMode.None}
-        RemoteCSP = New AesCryptoServiceProvider With {.Key = RemoteKey, .IV = RemoteIV, .Padding = PaddingMode.None}
-
-        LocalEncryptor = LocalCSP.CreateEncryptor()
-        RemoteDecryptor = RemoteCSP.CreateDecryptor()
-    End Sub
     
-    Private Sub Read(byval Buffer as Byte(), Offset as Int32, Count as Int32)
-        If RemoteTransformBuffer.Length < Count Then Redim RemoteTransformBuffer(Count - 1)
-        NetSocket.Receive(RemoteTransformBuffer,0,Count, SocketFlags.None)
-        RemoteDecryptor.TransformBlock(RemoteTransformBuffer,0, Count,Buffer,Offset)
-    End Sub
-    
-    Private Sub Write(byval Buffer as Byte(), Offset as Int32, Count as Int32)
-        If LocalTransformBuffer.Length < Count Then Redim LocalTransformBuffer(Count - 1)
-        LocalEncryptor.TransformBlock(Buffer,Offset, Count,LocalTransformBuffer,0)
-        NetSocket.Send(LocalTransformBuffer, 0,Count,SocketFlags.None)
-    End Sub
-    
-    Public Sub ReadArray(Index as Int32, Byref Output as Byte())
-        If Manager.Contains(Index) = False Then Throw New ArgumentException("Parameter 'Index' referrs to a non-existent stream!")
-        If Output IsNot Nothing Then Throw New ArgumentException("Parameter 'Output' must be nothing!")
-        SyncLock ReadLock
-            If Manager.Value(Index).Length >= 32
-                Manager.Value(Index).Read(ReadDataHeader, 32, 0)
-                UnpackInt32(ReadDataHeader, ReadPaddedLength, 0)
-                UnpackInt32(ReadDataHeader, ReadDataLength, 4)
-                UnpackInt32(ReadDataHeader, ReadIsMuxed, 8)
-                UnpackInt32(ReadDataHeader, ReadIsJagged, 12)
-                UnpackInt32(ReadDataHeader, ReadBlockCount, 16)
-                
-                If Manager.Value(Index).Length < ReadPaddedLength Then Return
-                If ReadPaddedData.Length < ReadPaddedLength Then Redim ReadPaddedData(ReadPaddedLength - 1)
-                Manager.Value(Index).Read(ReadPaddedData, ReadPaddedLength, 32)
+    Private Sub ReliableRead(Byref Buffer as Byte(), Byval Offset as UInt32, Byval Count as UInt32)
+            Dim A as UInt32 = 0    ' Counter/Read Offset
+            Dim B as UInt32 = 0    ' Retry Counter
+            Dim C as UInt32 = 1000  ' Retry Limit
+            Dim NetError As UInt32 = 0
+            
+            Do Until A = Count
+                Try
+                    NetError = NetSocket.Receive(Buffer, A + Offset, Count - A, SocketFlags.None)     
+                Catch
+                    NetError = 0
+                End Try
 
-                If ReadIsJagged <> - 1 Then
-                    Return
-                End If
-                If Index <> ReadIsMuxed Then 
-                    Return
-                End If
-
-                ReDim Output(ReadDataLength - 1)
-                Buffer.BlockCopy(ReadPaddedData, 0, Output, 0, ReadDataLength)
-                Manager.Value(Index).Dump(ReadPaddedLength + 32)
-            Else
-                If WaitForData(32) = False Then Throw New TimeoutException("Timed out while waiting for data!")
-                Read(ReadDataHeader, 0, 32)
-                UnpackInt32(ReadDataHeader, ReadPaddedLength, 0)
-                UnpackInt32(ReadDataHeader, ReadDataLength, 4)
-                UnpackInt32(ReadDataHeader, ReadIsMuxed, 8)
-                UnpackInt32(ReadDataHeader, ReadIsJagged, 12)
-                UnpackInt32(ReadDataHeader, ReadBlockCount, 16)
-                
-                If ReadPaddedData.Length < ReadPaddedLength Then Redim ReadPaddedData(ReadPaddedLength - 1)
-                If ReadBlockCount = 1 Then
-                    If WaitForData(ReadPaddedLength) = False Then Throw New TimeoutException("Timed out while waiting for data!")
-                    Read(ReadPaddedData, 0, ReadPaddedLength)
+                If NetError > 0 Then
+                    A += NetError
+                    B = 0
                 Else 
-                    ReadLoopIndexer = 0
-                    Do until ReadLoopIndexer >= ReadPaddedLength
-                        If WaitForData(ReadBlockSize) = False Then Throw New TimeoutException("Timed out while waiting for data!")
-                        Read(ReadPaddedData, ReadLoopIndexer, ReadBlockSize)
-                        ReadLoopIndexer += ReadBlockSize
-                    Loop
-                End If
-                
-                If ReadIsJagged <> - 1 Then
-                    If Manager.Contains(ReadIsMuxed) = True
-                        Manager.Value(ReadIsMuxed).Write(ReadDataHeader, 32)
-                        Manager.Value(ReadIsMuxed).Write(ReadPaddedData, ReadPaddedLength)
+                    B += 1
+                    If B >= C Then
+                        IsClosed = True
+                        Exit Sub
                     End If
-                    Return
                 End If
-
-                If Index <> ReadIsMuxed Then
-                    If Manager.Contains(ReadIsMuxed) = True
-                        Manager.Value(ReadIsMuxed).Write(ReadDataHeader, 32)
-                        Manager.Value(ReadIsMuxed).Write(ReadPaddedData, ReadPaddedLength)
-                    End If
-                    Return
-                End If
-
-                ReDim Output(ReadDataLength - 1)
-                Buffer.BlockCopy(ReadPaddedData, 0, Output, 0, ReadDataLength)
-            End If
-        End SyncLock
-    End Sub
-    
-    Public Sub WriteArray(Index as Int32, Byref Input as Byte())
-        If Manager.Contains(Index) = False Then _
-            Throw New ArgumentException("Parameter 'Index' referrs to a non-existent stream!")
-        If Input Is Nothing Then Throw New ArgumentException("Parameter 'Input' must not be nothing!")
-        SyncLock WriteLock
-            WriteDataLength = Input.Length
-            WritePaddedLength = GetNearestBlockSize(WriteDataLength)
-            WriteBlockCount = Math.Ceiling(WritePaddedLength / WriteBlockSize)
-            
-            If WriteBlockCount > 1 Then
-                WritePaddedLength = WriteBlockSize * WriteBlockCount
-            End If
-            
-            
-            If WritePaddedData.Length < WritePaddedLength Then Redim WritePaddedData(WritePaddedLength - 1)
-            Buffer.BlockCopy(Input, 0, WritePaddedData, 0, WriteDataLength)
-            PackInt32(WritePaddedLength, WriteDataHeader, 0)
-            PackInt32(WriteDataLength, WriteDataHeader, 4)
-            PackInt32(Index, WriteDataHeader, 8)
-            PackInt32(-1, WriteDataHeader, 12)
-            PackInt32(WriteBlockCount, WriteDataHeader, 16)
-            Write(WriteDataHeader, 0, 32)
-            If WriteBlockCount = 1 Then
-                Write(WritePaddedData, 0, WritePaddedLength)
-            Else 
-                WriteLoopIndexer = 0
-                Do until WriteLoopIndexer >= WritePaddedLength
-                    Write(WritePaddedData, WriteLoopIndexer, WriteBlockSize)
-                    WriteLoopIndexer += WriteBlockSize
-                Loop
-            End If
-            
-
-        End SyncLock
-    End Sub
-
-    Public Sub ReadJagged(Index as Int32, Byref Output as Byte()())
-        If Manager.Contains(Index) = False Then _
-            Throw New ArgumentException("Parameter 'Index' referrs to a non-existent stream!")
-        If Output IsNot Nothing Then Throw New ArgumentException("Parameter 'Output' must be nothing!")
-        SyncLock ReadLock
-            If Manager.Value(Index).Length >= 32
-                Manager.Value(Index).Read(ReadDataHeader, 32, 0)
-                UnpackInt32(ReadDataHeader, ReadPaddedLength, 0)
-                UnpackInt32(ReadDataHeader, ReadDataLength, 4)
-                UnpackInt32(ReadDataHeader, ReadIsMuxed, 8)
-                UnpackInt32(ReadDataHeader, ReadIsJagged, 12)
-                UnpackInt32(ReadDataHeader, ReadBlockCount, 16)
-                
-                If Manager.Value(Index).Length < ReadPaddedLength Then Return
-                If ReadPaddedData.Length < ReadPaddedLength Then Redim ReadPaddedData(ReadPaddedLength - 1)
-                Manager.Value(Index).Read(ReadPaddedData, ReadPaddedLength, 32)
-
-                If ReadIsJagged = - 1 Then Return
-                If Index <> ReadIsMuxed Then Return
-
-                ReDim Output(ReadIsJagged - 1)
-                ReadJaggedIndexer = 0
-                ReadJaggedCounter = 0
-                Do Until ReadJaggedIndexer > ReadIsJagged - 1
-                    UnpackInt32(ReadPaddedData, ReadJaggedIndexLength, ReadJaggedCounter)
-                    ReadJaggedCounter += 4
-                    Redim Output(ReadJaggedIndexer)(ReadJaggedIndexLength - 1)
-                    Buffer.BlockCopy(ReadPaddedData, ReadJaggedCounter, Output(ReadJaggedIndexer), 0,
-                                     ReadJaggedIndexLength)
-                    ReadJaggedCounter += ReadJaggedIndexLength
-                    ReadJaggedIndexer += 1
-                Loop
-                Manager.Value(ReadIsMuxed).Dump(ReadPaddedLength + 32)
-            Else
-                If WaitForData(32) = False Then Throw New TimeoutException("Timed out while waiting for data!")
-                Read(ReadDataHeader, 0, 32)
-                UnpackInt32(ReadDataHeader, ReadPaddedLength, 0)
-                UnpackInt32(ReadDataHeader, ReadDataLength, 4)
-                UnpackInt32(ReadDataHeader, ReadIsMuxed, 8)
-                UnpackInt32(ReadDataHeader, ReadIsJagged, 12)
-                UnpackInt32(ReadDataHeader, ReadBlockCount, 16)
-                
-                If ReadPaddedData.Length < ReadPaddedLength Then Redim ReadPaddedData(ReadPaddedLength - 1)
-                If ReadBlockCount = 1 Then
-                    If WaitForData(ReadPaddedLength) = False Then Throw New TimeoutException("Timed out while waiting for data!")
-                    Read(ReadPaddedData, 0, ReadPaddedLength)
-                Else 
-                    ReadLoopIndexer = 0
-                    Do until ReadLoopIndexer >= ReadPaddedLength
-                        If WaitForData(ReadBlockSize) = False Then Throw New TimeoutException("Timed out while waiting for data!")
-                        Read(ReadPaddedData, ReadLoopIndexer, ReadBlockSize)
-                        ReadLoopIndexer += ReadBlockSize
-                    Loop
-                End If
-                
-                If ReadIsJagged = - 1 Then
-                    If Manager.Contains(ReadIsMuxed) = True
-                        Manager.Value(ReadIsMuxed).Write(ReadDataHeader, 32)
-                        Manager.Value(ReadIsMuxed).Write(ReadPaddedData, ReadPaddedLength)
-                    End If
-                    Return
-                End If
-
-                If Index <> ReadIsMuxed Then
-                    If Manager.Contains(ReadIsMuxed) = True
-                        Manager.Value(ReadIsMuxed).Write(ReadDataHeader, 32)
-                        Manager.Value(ReadIsMuxed).Write(ReadPaddedData, ReadPaddedLength)
-                    End If
-                    Return
-                End If
-
-                ReDim Output(ReadIsJagged - 1)
-                ReadJaggedIndexer = 0
-                ReadJaggedCounter = 0
-                Do Until ReadJaggedIndexer > ReadIsJagged - 1
-                    UnpackInt32(ReadPaddedData, ReadJaggedIndexLength, ReadJaggedCounter)
-                    ReadJaggedCounter += 4
-                    Redim Output(ReadJaggedIndexer)(ReadJaggedIndexLength - 1)
-                    Buffer.BlockCopy(ReadPaddedData, ReadJaggedCounter, Output(ReadJaggedIndexer), 0,
-                                     ReadJaggedIndexLength)
-                    ReadJaggedCounter += ReadJaggedIndexLength
-                    ReadJaggedIndexer += 1
-                Loop
-            End If
-        End SyncLock
-    End Sub
-
-    Public Sub WriteJagged(Index as Int32, Byref Input as Byte()())
-        If Manager.Contains(Index) = False Then Throw New ArgumentException("Parameter 'Index' referrs to a non-existent stream!")
-        If Input Is Nothing Then Throw New ArgumentException("Parameter 'Input' must not be nothing!")
-        SyncLock WriteLock
-            WriteDataLength = input.Length * 4
-            WriteJaggedIndexer = 0
-            Do Until WriteJaggedIndexer > Input.Length - 1
-                WriteDataLength += Input(WriteJaggedIndexer).Length
-                WriteJaggedIndexer += 1
             Loop
-            WritePaddedLength = GetNearestBlockSize(WriteDataLength)
-            WriteBlockCount = Math.Ceiling(WritePaddedLength / WriteBlockSize)
-            
-            If WriteBlockCount > 1 Then
-                WritePaddedLength = WriteBlockSize * WriteBlockCount
-            End If
-            
-            
-            If WritePaddedData.Length < WritePaddedLength Then Redim WritePaddedData(WritePaddedLength - 1)
-            PackInt32(WritePaddedLength, WriteDataHeader, 0)
-            PackInt32(WriteDataLength, WriteDataHeader, 4)
-            PackInt32(Index, WriteDataHeader, 8)
-            PackInt32(Input.Length, WriteDataHeader, 12)
-            PackInt32(WriteBlockCount, WriteDataHeader, 16)
-            WriteJaggedIndexer = 0
-            WriteJaggedCounter = 0
-            Do Until WriteJaggedIndexer > Input.Length - 1
-                PackInt32(Input(WriteJaggedIndexer).Length, WritePaddedData, WriteJaggedCounter)
-                WriteJaggedCounter += 4
-                Buffer.BlockCopy(Input(WriteJaggedIndexer), 0, WritePaddedData, WriteJaggedCounter,
-                                 Input(WriteJaggedIndexer).Length)
-                WriteJaggedCounter += Input(WriteJaggedIndexer).Length
-                WriteJaggedIndexer += 1
-            Loop
+    End Sub
+    
+    Private Sub AsyncRead
+        SyncLock ReadLock
 
-            Write(WriteDataHeader, 0, 32)
-            If WriteBlockCount = 1 Then
-                Write(WritePaddedData, 0, WritePaddedLength)
-            Else 
-                WriteLoopIndexer = 0
-                Do until WriteLoopIndexer >= WritePaddedLength
-                    Write(WritePaddedData, WriteLoopIndexer, WriteBlockSize)
-                    WriteLoopIndexer += WriteBlockSize
-                Loop
+            If NetSocket.Available < 32 Then Return
+            Dim AsyncHeader as New DataHeader 
+            Dim AsyncTransformBuffer(65535) as Byte
+            ReliableRead(AsyncHeader.HeaderRaw, 0, 32)
+            
+            If AsyncTransformBuffer.Length < AsyncHeader.Length Then ReDim AsyncTransformBuffer(AsyncHeader.Length - 1)
+            
+            If (AsyncHeader.SubSocketConfig And SubSocketConfigFlagLarge) <> 0 Then
+                For Offset = 0 To AsyncHeader.Length - 1 Step LargeBlockSize
+                    ReliableRead(AsyncTransformBuffer, Offset, LargeBlockSize)
+                Next
+                'ReliableRead(AsyncTransformBuffer, 0, AsyncHeader.Length)
+            Else
+                ReliableRead(AsyncTransformBuffer, 0, AsyncHeader.Length)
             End If
+            
+            If (AsyncHeader.SubSocketConfig And SubSocketConfigFlag.Encrypted) <> 0 Then
+                RemoteTransform.TransformBlock(AsyncTransformBuffer,
+                                               0,
+                                               AsyncHeader.EncryptedLength,
+                                               AsyncTransformBuffer,
+                                               0)
+            End If
+                
+            If (AsyncHeader.SubSocketConfig And SubSocketConfigFlag.Compressed) <> 0 Then
+                RemoteDecompressor.Transform(AsyncTransformBuffer,
+                                             AsyncTransformBuffer,
+                                             AsyncHeader.CompressedLength)
+            End If
+            SyncLock BufferLock
+                SubSocketBuffers(AsyncHeader.SubSocket).Write(AsyncHeader.HeaderRaw, 32)
+                SubSocketBuffers(AsyncHeader.SubSocket).Write(AsyncTransformBuffer, AsyncHeader.RawLength)
+            End SyncLock
+        End SyncLock
+    End Sub
+    
+
+    Public Function Read(Byval SubSocket as UInt32, Byref Data as Byte()) As UInt32
+        SyncLock BufferReadLock
+            SyncLock BufferLock
+                SubSocketBuffers(SubSocket).Read(BufferHeader.HeaderRaw, 32, 0)
+                If BufferTransformBuffer.Length < BufferHeader.RawLength Then ReDim BufferTransformBuffer(BufferHeader.RawLength - 1)
+                SubSocketBuffers(SubSocket).Read(BufferTransformBuffer, BufferHeader.RawLength, 32)
+                SubSocketBuffers(SubSocket).Shift(BufferHeader.RawLength + 32)
+            End SyncLock
+            
+            ReDim Data(BufferHeader.RawLength - 1)
+            Buffer.BlockCopy(BufferTransformBuffer, 0, Data, 0, BufferHeader.RawLength)
+            Return BufferHeader.RawLength
+        End SyncLock
+    End Function
+
+    Public Sub Write(Byval SubSocket as UInt32, Data as Byte())
+        SyncLock WriteLock
+            LocalHeader.RawLength = Data.Length
+            LocalHeader.SubSocket = SubSocket
+            SyncLock BufferLock
+                LocalHeader.SubSocketConfig = SubSocketConfigs(SubSocket)
+            End SyncLock
+            LocalHeader.CompressedLength = 0
+
+            If LocalTransformBuffer.Length < LocalHeader.RawLength Then ReDim LocalTransformBuffer(LocalHeader.RawLength - 1)
+            Buffer.BlockCopy(Data, 0, LocalTransformBuffer, 0, LocalHeader.RawLength)
+            
+            
+            Select Case LocalHeader.SubSocketConfig
+                Case = SubSocketConfigFlag.Compressed
+                    LocalHeader.CompressedLength = LocalCompressor.Transform(LocalTransformBuffer,
+                                                                             LocalTransformBuffer,
+                                                                             LocalHeader.RawLength)
+                Case = SubSocketConfigFlag.Compressed + SubSocketConfigFlag.Encrypted
+                    LocalHeader.CompressedLength = LocalCompressor.Transform(LocalTransformBuffer,
+                                                                             LocalTransformBuffer,
+                                                                             LocalHeader.RawLength)
+            End Select
+
+            If LocalTransformBuffer.Length < LocalHeader.EncryptedLength Then ReDim Preserve LocalTransformBuffer(LocalHeader.EncryptedLength - 1)
+            
+            Select Case LocalHeader.SubSocketConfig
+                Case = SubSocketConfigFlag.Compressed + SubSocketConfigFlag.Encrypted
+                    LocalTransform.TransformBlock(LocalTransformBuffer,
+                                                  0,
+                                                  LocalHeader.EncryptedLength,
+                                                  LocalTransformBuffer,
+                                                  0)
+                Case = SubSocketConfigFlag.Encrypted
+                    LocalTransform.TransformBlock(LocalTransformBuffer,
+                                                  0,
+                                                  LocalHeader.EncryptedLength,
+                                                  LocalTransformBuffer,
+                                                  0)
+            End Select
+            
+            If LocalHeader.Length >= LargeBlockSize Then LocalHeader.SubSocketConfig += SubSocketConfigFlagLarge
+            If LocalTransformBuffer.Length < LocalHeader.Length Then ReDim Preserve LocalTransformBuffer(LocalHeader.Length - 1)
+            
+            Try
+                Try
+                    NetSocket.Send(LocalHeader.HeaderRaw,0, 32, SocketFlags.None)
+
+                    If LocalHeader.Length >= LargeBlockSize Then 
+                        Dim AsyncReadThread As new Threading.Thread(Addressof AsyncRead)
+                        AsyncReadThread.Start()
+                    End If
+                    
+                    
+                    If (LocalHeader.SubSocketConfig And SubSocketConfigFlagLarge) <> 0 Then
+                        'NetSocket.SendTimeout = -1
+                        For Offset = 0 To LocalHeader.Length - 1 Step LargeBlockSize
+                            NetSocket.Send(LocalTransformBuffer, Offset, LargeBlockSize, SocketFlags.None)
+                        Next
+
+                        'NetSocket.Send(LocalTransformBuffer,0, LocalHeader.Length, SocketFlags.None)
+                        'NetSocket.SendTimeout = 1000
+                    Else
+                        NetSocket.Send(LocalTransformBuffer,0, LocalHeader.Length, SocketFlags.None)
+                    End If
+
+
+                    
+                Catch IsDisposedEx as ObjectDisposedException
+                    Isclosed = True
+                End Try
+            Catch SocketError as SocketException
+                Select Case SocketError.SocketErrorCode
+                    Case = Sockets.SocketError.Shutdown
+                        Isclosed = True
+                    Case = Sockets.SocketError.Disconnecting
+                        Isclosed = True
+                    Case = Sockets.SocketError.OperationAborted
+                        Isclosed = True
+                    Case = Sockets.SocketError.TimedOut
+                        Isclosed = True
+                    Case = Sockets.SocketError.ConnectionReset
+                        Isclosed = True
+                    Case Else : Throw
+                End Select
+            End Try
         End SyncLock
     End Sub
 
-    Public Function Available(Index as Int32) As Boolean
-        If Manager.Contains(Index) = False Then _
-            Throw New ArgumentException("Parameter 'Index' referrs to a non-existent stream!")
-        SyncLock ReadLock
-            If Manager.Value(Index).Length < 32
-                If NetSocket.Available = 0 then Return False
-                If WaitForData(32) = False Then Return False
-                Read(SeekDataHeader, 0, 32)
-                UnpackInt32(SeekDataHeader, SeekPaddedLength, 0)
-                UnpackInt32(SeekDataHeader, SeekDataLength, 4)
-                UnpackInt32(SeekDataHeader, SeekIsMuxed, 8)
-                UnpackInt32(SeekDataHeader, SeekIsJagged, 12)
-                UnpackInt32(SeekDataHeader, SeekBlockCount, 16)
-                
-                If SeekPaddedData.Length < SeekPaddedLength Then Redim SeekPaddedData(SeekPaddedLength - 1)
-                If SeekBlockCount = 1 Then
-                    If WaitForData(SeekPaddedLength) = False Then Throw New TimeoutException("Timed out while waiting for data!")
-                    Read(SeekPaddedData, 0, SeekPaddedLength)
-                Else 
-                    SeekLoopIndexer = 0
-                    Do until SeekLoopIndexer >= SeekPaddedLength
-                        If WaitForData(SeekBlockSize) = False Then Throw New TimeoutException("Timed out while waiting for data!")
-                        Read(SeekPaddedData, SeekLoopIndexer, SeekBlockSize)
-                        SeekLoopIndexer += SeekBlockSize
-                    Loop
-                End If
-
-                If Manager.Contains(SeekIsMuxed) = True
-                    Manager.Value(SeekIsMuxed).Write(SeekDataHeader, 32)
-                    Manager.Value(SeekIsMuxed).Write(SeekPaddedData, SeekPaddedLength)
-                End If
-                Return (Index = SeekIsMuxed) And Manager.Contains(SeekIsMuxed)
-            Else
-                Manager.Value(Index).Read(SeekDataHeader, 32, 0)
-                UnpackInt32(SeekDataHeader, SeekPaddedLength, 0)
-                If Manager.Value(Index).Length < 32 + SeekPaddedLength Then Return False Else Return True 
-            End If
-        End SyncLock
-    End Function
-
-    Private Function WaitForData(Amount as Int32) as Boolean
-        Dim WaitCounter = 0
-        Dim WaitLimit As Double = (ReadTimeout * 30)/1000
-        Dim WaitGovernor as new Governor(30)
-        Do While True 
-            Dim Available as Int32 = NetSocket.Available
-            If WaitCounter = 0 Then
-                If IsConnected = False Then
-                    Return False
-                End If
-            End If
-            
-            If Available >= Amount Then
-                Exit Do
-            End If
-            
-            If WaitCounter >= WaitLimit Then
-                Return False
-            End If
-            
-
-            
-            
-            WaitCounter += 1
-            WaitGovernor.Limit()
-            
-        Loop
-        Return True
-    End Function
-
-    Private Function IsConnected as Boolean
-        If Closing = True Then Return False
+    Private Function IsConnected As Boolean
+        If IsDisposed = True Then Return False
+        If IsClosed = True Then Return False
         If NetSocket is Nothing Then Return False
         If NetSocket.Connected = False Then Return False
-
         DataIsAvailable = NetSocket.Poll(0, SelectMode.SelectRead)
         DataIsNotAvailable = (NetSocket.Available = 0)
 
-        If DataIsAvailable = False
-            If DataIsNotAvailable = False
-                Return True
-            Else
-                Return True
-            End If
+        'A - DataIsAvailable, B - DataIsNotAvailable
+        '
+        'A = true,  B = false - connected, data is available for reading. not inverts to true
+        'A = false, B = true  - connected, data is not available for reading. not inverts to true
+        'A = false, B = false - connected, data is available for reading. not inverts to true
+        'A = true,  B = true  - disconnected, data is not available for reading. not inverts to false
+
+        Return Not (DataIsAvailable = True AndAlso DataIsNotAvailable = True)
+    End Function
+
+    Private Function BootstrapInit(ServerSpawned as Boolean) As UInt32
+
+        'Initialize for handshake
+        Dim UTCTimestamp as DateTime = DateTime.UtcNow()
+        LocalRNG = New VariableRNG({UTCTimestamp.Year,
+                                    UTCTimestamp.Month,
+                                    UTCTimestamp.Day,
+                                    UTCTimestamp.Hour,
+                                    UTCTimestamp.Minute,
+                                    Math.Floor(UTCTimestamp.Second/2),
+                                    RemotePort})
+        If ServerSpawned = True Then
+            LocalKey = LocalRNG.Next(32)
+            LocalIV = LocalRNG.Next(16)
+            RemoteKey = LocalRNG.Next(32)
+            RemoteIV = LocalRNG.Next(16)
+
+            LocalCSP = New AesCryptoServiceProvider With 
+                {.Key = LocalKey, .IV = LocalIV, .Padding = PaddingMode.None}
+            RemoteCSP = New AesCryptoServiceProvider With 
+                {.Key = RemoteKey, .IV = RemoteIV, .Padding = PaddingMode.None}
+
+            LocalTransform = LocalCSP.CreateEncryptor()
+            RemoteTransform = RemoteCSP.CreateDecryptor()
         Else
-            If DataIsNotAvailable = False
-                Return True
-            Else
-                Return False
-            End If
+            RemoteKey = LocalRNG.Next(32)
+            RemoteIV = LocalRNG.Next(16)
+            LocalKey = LocalRNG.Next(32)
+            LocalIV = LocalRNG.Next(16)
+
+
+            LocalCSP = New AesCryptoServiceProvider With 
+                {.Key = LocalKey, .IV = LocalIV, .Padding = PaddingMode.None}
+            RemoteCSP = New AesCryptoServiceProvider With 
+                {.Key = RemoteKey, .IV = RemoteIV, .Padding = PaddingMode.None}
+
+            LocalTransform = LocalCSP.CreateEncryptor()
+            RemoteTransform = RemoteCSP.CreateDecryptor()
         End If
+
+
+        'Prepare handshake bootstrap data
+        LocalTimestamp = DateTime.Now
+        Buffer.BlockCopy(MaelstromHandshakeHeader, 0, LocalProtocolHandshake, 0, 16)
+        Buffer.BlockCopy(MaelstromHandshakeVersion, 0, LocalProtocolHandshake, 16, 16)
+        PackTimestamp(LocalProtocolHandshake, 32, LocalTimestamp)
+
+        'Declare transfer variables
+        Dim WriteRawBuffer(63) as Byte
+        Dim ReadRawBuffer(63) as Byte
+
+        'Transfer handshake bootstrap data
+        LocalTransform.TransformBlock(LocalProtocolHandshake, 0, 64, WriteRawBuffer, 0)
+
+        Try
+            NetSocket.Send(WriteRawBuffer, 0, 64, SocketFlags.None)
+            NetSocket.Receive(ReadRawBuffer, 0, 64, SocketFlags.None)
+        Catch err as SocketException
+            Select Case err.SocketErrorCode
+                Case = Sockets.SocketError.Shutdown
+                    Buffer.BlockCopy(MaelstromHeaderZeroed, 0, ReadRawBuffer, 0, 32)
+                Case = Sockets.SocketError.Disconnecting
+                    Buffer.BlockCopy(MaelstromHeaderZeroed, 0, ReadRawBuffer, 0, 32)
+                Case = Sockets.SocketError.OperationAborted
+                    Buffer.BlockCopy(MaelstromHeaderZeroed, 0, ReadRawBuffer, 0, 32)
+                Case = Sockets.SocketError.TimedOut
+                    Buffer.BlockCopy(MaelstromHeaderZeroed, 0, ReadRawBuffer, 0, 32)
+                Case = Sockets.SocketError.ConnectionReset
+                    Buffer.BlockCopy(MaelstromHeaderZeroed, 0, ReadRawBuffer, 0, 32)
+                Case Else : Throw
+            End Select
+        End Try
+        RemoteTransform.TransformBlock(ReadRawBuffer, 0, 64, RemoteProtocolHandshake, 0)
+
+        'Cleanup after transfer
+        LocalCSP.Dispose()
+        LocalTransform.Dispose()
+        RemoteCSP.Dispose()
+        RemoteTransform.Dispose()
+
+        'Perform handshake bootstrap verification
+        If BinaryCompare(LocalProtocolHandshake, RemoteProtocolHandshake, 0, 16) = False Then Return 1
+        If BinaryCompare(LocalProtocolHandshake, RemoteProtocolHandshake, 16, 16) = False Then Return 2
+        Return 0
     End Function
 
-    Friend Sub Close
-        If Closing = False Then
-            Closing = True
-            Dim AsyncThread as new Threading.Thread(
-                sub()
-                    Do Until Manager.Length = 0
-                        Threading.Thread.Sleep(333)
-                    Loop
-                    
-                    NetSocket.Close()
-                    Dispose()
-                    Closing = False
-                End Sub)
-            AsyncThread.Start()
+    Friend Function Init(TransportSocket as Sockets.Socket, ServerSpawned as Boolean) as SocketError
+
+        'Set up base variables
+        NetSocket = TransportSocket
+        NetSocket.SendBufferSize = Int32.MaxValue
+        NetSocket.ReceiveBufferSize = Int32.MaxValue '2000000
+        NetSocket.SendTimeout = 1000
+        NetSocket.ReceiveTimeout = 1000
+        NetSocket.Blocking = True
+        NetSocket.NoDelay = True
+        NetStream = New NetworkStream(NetSocket, FileAccess.ReadWrite, False)
+        LocalEndpoint = CType(NetSocket.LocalEndPoint, IPEndPoint)
+        RemoteEndpoint = CType(NetSocket.RemoteEndPoint, IPEndPoint)
+
+        'Set the non-server port
+        If ServerSpawned = True Then
+            RemotePort = RemoteEndpoint.Port
+        Else
+            RemotePort = LocalEndpoint.Port
         End If
-    End Sub
-    
-    Public Sub CreateStream(Index as Int32)
-        If Index < 0 then Throw New ArgumentException("Index must be non-negative!")
-        SyncLock DictLock
-            Manager.Add(Index, New QueueStream())
-        End SyncLock
-    End Sub
 
-    Public Sub RemoveStream(Index as Int32)
-        If Index < 0 then Throw New ArgumentException("Index must be non-negative!")
-        SyncLock DictLock
-            Manager.Remove(Index)
-        End SyncLock
-    End Sub
+        'Attempt to bootstrap init handshake
+        BootstrapRetryResult = UInt32.MaxValue
+        BootstrapRetryCounter = 0
+        Do Until BootstrapRetryResult = 0 Or BootstrapRetryCounter = BootstrapRetryLimit
+            BootstrapRetryResult = BootstrapInit(ServerSpawned)
+            BootstrapRetryCounter += 1
+        Loop
 
-    Public Function StreamExists(Index as Int32) As Boolean
-        If Index < 0 then Throw New ArgumentException("Index must be non-negative!")
-        SyncLock DictLock
-            Return Manager.Contains(Index)
-        End SyncLock
+        'Abort and return if we couldn't bootstrap init successfully.
+        If BootstrapRetryResult <> 0 Then return BootstrapRetryResult
+
+
+        'Handshake and initialize with full functionality
+        UnpackTimestamp(RemoteProtocolHandshake, 32, RemoteTimestamp)
+        LocalRNG = New VariableRNG({LocalTimestamp.Year,
+                                    LocalTimestamp.Month,
+                                    LocalTimestamp.Day,
+                                    LocalTimestamp.Hour,
+                                    LocalTimestamp.Minute,
+                                    LocalTimestamp.Second,
+                                    LocalTimestamp.Millisecond,
+                                    RemotePort})
+        RemoteRNG = New VariableRNG({RemoteTimestamp.Year,
+                                     RemoteTimestamp.Month,
+                                     RemoteTimestamp.Day,
+                                     RemoteTimestamp.Hour,
+                                     RemoteTimestamp.Minute,
+                                     RemoteTimestamp.Second,
+                                     RemoteTimestamp.Millisecond,
+                                     RemotePort})
+
+
+        LocalKey = LocalRNG.Next(32)
+        LocalIV = LocalRNG.Next(16)
+        RemoteKey = RemoteRNG.Next(32)
+        RemoteIV = RemoteRNG.Next(16)
+
+        LocalCSP = New AesCryptoServiceProvider With 
+            {.Key = LocalKey, .IV = LocalIV, .Padding = PaddingMode.None}
+        RemoteCSP = New AesCryptoServiceProvider With 
+            {.Key = RemoteKey, .IV = RemoteIV, .Padding = PaddingMode.None}
+
+        LocalTransform = LocalCSP.CreateEncryptor()
+        RemoteTransform = RemoteCSP.CreateDecryptor()
+        
+
+        LocalCompressor = New WriteCompressor()
+        RemoteDecompressor = New ReadDecompressor()
+
+
+        IsClosed = False
+        Return 0
     End Function
-    
-    Public Function GetNextFreeStream as Int32
-        For x = 0 to Int32.MaxValue - 2
-            If StreamExists(x) = False Then Return x
+
+    Public Sub CreateSubSocket(SubSocket as UInt32)
+        SyncLock BufferLock
+        SubSocketBuffers.Add(SubSocket, New QueueStream())
+        SubSocketConfigs.Add(SubSocket, SubSocketConfigFlag.Nothing)
+End SyncLock
+    End Sub
+
+    Public Sub RemoveSubSocket(SubSocket as UInt32)
+        SyncLock BufferLock
+        SubSocketBuffers.Remove(SubSocket)
+        SubSocketConfigs.Remove(SubSocket)
+End SyncLock
+    End Sub
+
+    Public Function SubSocketExists(SubSocket as UInt32) As Boolean
+        SyncLock BufferLock
+        Return SubSocketBuffers.Contains(SubSocket)
+            End SyncLock
+    End Function
+
+    Public Function GetFreeSubSocket() As UInt32
+        SyncLock BufferLock
+        For SubSocket = 0 to UInt32.MaxValue - 1
+            If SubSocketBuffers.Contains(SubSocket) = False Then Return SubSocket
         Next
-        Return -1
+            End SyncLock
+        Throw New SubSocketsExhaustedException("No more subsockets available! Free subsockets by calling method 'RemoveSubSocket(SubSocket as UInt32)'!")
     End Function
+
+    Public Sub Close()
+        IsClosed = True
+        SyncLock ReadLock
+            SyncLock WriteLock
+                NetSocket.Close()
+            End SyncLock
+        End SyncLock
+    End Sub
 
     Public Sub Dispose() Implements IDisposable.Dispose
-        If Disposed = False
-            Try : LocalEncryptor.Dispose() : Catch : End Try
-            Try : RemoteDecryptor.Dispose() : Catch : End Try
-            Try : LocalCSP.Dispose() : Catch : End Try
-            Try : RemoteCSP.Dispose() : Catch : End Try
-            Disposed = True
+        If IsDisposed = False
+            IsClosed = True
+            IsDisposed = True
+            SyncLock ReadLock
+                SyncLock WriteLock
+                    NetSocket.Close()
+                    LocalCSP.Dispose()
+                    LocalTransform.Dispose()
+                    RemoteCSP.Dispose()
+                    RemoteTransform.Dispose()
+                    NetSocket.Dispose()
+                End SyncLock
+            End SyncLock
         End If
     End Sub
 End Class
