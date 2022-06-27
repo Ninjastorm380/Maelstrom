@@ -17,7 +17,7 @@ Public Partial Class Socket : Implements IDisposable
         ''' Base socket. Used along with NetStream for the underlying TCP connection.
         ''' </summary>
         ''' <remarks></remarks>
-    Private NetSocket as Sockets.Socket
+    Private NetSocket as System.Net.Sockets.Socket
         
         ''' <summary>
         ''' Base network stream. Used along with NetSocket for the underlying TCP connection.
@@ -95,9 +95,10 @@ Public Partial Class Socket : Implements IDisposable
     Private RemoteProtocolHandshake(63) as Byte 
     Private RemoteTimestamp as DateTime
     Private RemoteRNG as VariableRNG
-        Private ReadOnly BufferHeader as New DataHeader
+
+        Private BufferHeader as New DataHeader
         Private BufferTransformBuffer(65535) as Byte
-        Private ReadOnly HasDataHeader as New DataHeader
+        Private HasDataHeader as New DataHeader
         Private HasDataTransformBuffer(65535) as Byte
         Private AsyncHeader as New DataHeader
         Private AsyncTransformBuffer(65535) as Byte
@@ -123,4 +124,5 @@ Public Partial Class Socket : Implements IDisposable
         Private ReadOnly BufferReadLock as Object = New Object
         Private ReadOnly ReadLock as Object = New Object
         Private ReadOnly WriteLock as Object = New Object
+        Private ReadOnly Lock as Object = New Object
 End Class

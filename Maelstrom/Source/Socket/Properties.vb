@@ -1,5 +1,3 @@
-Imports System.Net.Sockets
-
 Public Partial Class Socket : Implements IDisposable
     Public Property ConfigureSubSocket(SubSocket As UInt32) as SubsocketConfigFlag
         get
@@ -16,8 +14,8 @@ Public Partial Class Socket : Implements IDisposable
     
     Public Readonly Property Connected as Boolean
         get
-            SyncLock ReadLock
-                SyncLock WriteLock
+            SyncLock WriteLock
+                SyncLock ReadLock
                     Return IsConnected()
                 End SyncLock
             End SyncLock
@@ -26,52 +24,51 @@ Public Partial Class Socket : Implements IDisposable
     
     Public ReadOnly Property SubSocketHasData(Byval SubSocket as UInt32) as Boolean
         get
-                If SubSocketBuffers.Contains(SubSocket) = False Then
+            SyncLock BufferLock
+                If SubSocketBuffers.Contains(SubSocket) = False Then 
                     Return False
                 End If
                 If SubSocketBuffers(SubSocket).Length >= 32 Then
                     Return True
                 End If
-            SyncLock ReadLock
-                If NetSocket.Available >= 32 Then 
-                    Dim HasDataHeader as New DataHeader 
-                    Dim HasDataTransformBuffer(65535) as Byte
-                        ReliableRead(HasDataHeader.HeaderRaw, 0, 32)
-            
-                        If HasDataTransformBuffer.Length < HasDataHeader.Length Then ReDim HasDataTransformBuffer(HasDataHeader.Length - 1)
-                    
-                    If (HasDataHeader.SubSocketConfig And SubSocketConfigFlagLarge) <> 0 Then
-                        For Offset = 0 To HasDataHeader.Length - 1 Step LargeBlockSize
-                            ReliableRead(HasDataTransformBuffer, Offset, LargeBlockSize)
-                        Next
-                        'ReliableRead(HasDataTransformBuffer, 0, HasDataHeader.Length)
-                    Else
-                        ReliableRead(HasDataTransformBuffer, 0, HasDataHeader.Length)
-                    End If
-                    
-                    
+            End SyncLock
 
-                    
-                        If (HasDataHeader.SubSocketConfig And SubSocketConfigFlag.Encrypted) <> 0 Then
-                            RemoteTransform.TransformBlock(HasDataTransformBuffer,
+
+            If NetSocket.Available >= 32 Then
+                SyncLock ReadLock
+                    If NetSocket.Available >= 32 Then
+
+                        If NetSocket.Available < 32 Then Return False
+                        ReliableRead(AsyncHeader.HeaderRaw, 0, 32)
+                        If AsyncTransformBuffer.Length < AsyncHeader.Length Then _
+                            ReDim AsyncTransformBuffer(AsyncHeader.Length - 1)
+                        ReliableRead(AsyncTransformBuffer, 0, AsyncHeader.Length)
+            
+                        If (AsyncHeader.SubSocketConfig And SubSocketConfigFlag.Encrypted) <> 0 Then
+                            RemoteTransform.TransformBlock(AsyncTransformBuffer,
                                                            0,
-                                                           HasDataHeader.EncryptedLength,
-                                                           HasDataTransformBuffer,
+                                                           AsyncHeader.EncryptedLength,
+                                                           AsyncTransformBuffer,
                                                            0)
                         End If
-                
-                        If (HasDataHeader.SubSocketConfig And SubSocketConfigFlag.Compressed) <> 0 Then
-                            RemoteDecompressor.Transform(HasDataTransformBuffer,
-                                                         HasDataTransformBuffer,
-                                                         HasDataHeader.CompressedLength)
+
+                        If (AsyncHeader.SubSocketConfig And SubSocketConfigFlag.Compressed) <> 0 Then
+                            RemoteDecompressor.Transform(AsyncTransformBuffer,
+                                                         AsyncTransformBuffer,
+                                                         AsyncHeader.CompressedLength)
                         End If
+
                         SyncLock BufferLock
-                            SubSocketBuffers(HasDataHeader.SubSocket).Write(HasDataHeader.HeaderRaw, 32)
-                            SubSocketBuffers(HasDataHeader.SubSocket).Write(HasDataTransformBuffer, HasDataHeader.RawLength)
+                            SubSocketBuffers(AsyncHeader.SubSocket).Write(AsyncHeader.HeaderRaw, 32)
+                            SubSocketBuffers(AsyncHeader.SubSocket).Write(AsyncTransformBuffer, AsyncHeader.RawLength)
                         End SyncLock
-                        Return (HasDataHeader.SubSocket = SubSocket)
-                End If
-            End SyncLock
+
+                        Return (AsyncHeader.SubSocket = SubSocket)
+                    End If
+                End SyncLock
+            End If
+
+
             Return False
         End get
     End Property

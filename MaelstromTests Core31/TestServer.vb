@@ -1,5 +1,4 @@
 Imports System.IO
-Imports System.Security.Cryptography
 Imports System.Threading
 Imports Maelstrom
 
@@ -45,7 +44,7 @@ Friend Class TestServer : Inherits ServerBase
         Console.WriteLine("DEBUG - SERVER: creating async instances....") 
         Payload = File.ReadAllBytes("./data.bin")
         SyncLock WaitLock
-            For x = 0 to 0
+            For x = 0 to 1
                 CreateAsyncInstance(Socket,x)
                 Console.WriteLine("DEBUG - SERVER: async instance " + x.ToString() + " created.") 
             Next
@@ -72,12 +71,12 @@ Friend Class TestServer : Inherits ServerBase
                 Dim Buffer as Byte() = Nothing
                 Dim Compared as Boolean = True
                 Socket.CreateSubSocket(SubSocket)
-                'Socket.ConfigureSubSocket(SubSocket) = SubSocketConfigFlag.Encrypted + SubSocketConfigFlag.Compressed
+                Socket.ConfigureSubSocket(SubSocket) = SubSocketConfigFlag.Encrypted + SubSocketConfigFlag.Compressed
                 
                 Console.WriteLine("DEBUG - SERVER - ASYNC INSTANCE " + SubSocket.ToString() + ": awaiting unlock...") 
                 SyncLock WaitLock : End SyncLock
                 Console.WriteLine("DEBUG - SERVER - ASYNC INSTANCE " + SubSocket.ToString() + ": unlocked!") 
-                Threading.Thread.Sleep(1000)
+                Thread.Sleep(1000)
                 Console.WriteLine("DEBUG - SERVER - ASYNC INSTANCE " + SubSocket.ToString() + ": writing...") 
                 Socket.Write(SubSocket, Payload)
                 Console.WriteLine("DEBUG - SERVER - ASYNC INSTANCE " + SubSocket.ToString() + ": written!") 
@@ -86,9 +85,12 @@ Friend Class TestServer : Inherits ServerBase
                     If Socket.SubSocketHasData(SubSocket) = True Then
                         Socket.Read(SubSocket, Buffer)
                         Compared = BinaryCompare(Buffer, Payload, 0, Buffer.Length)
-                        Console.WriteLine("DEBUG - SERVER - ASYNC INSTANCE " + SubSocket.ToString() + ": integerity is " + Compared.ToString().ToLower() +", latency: " + Governor.Delta.ToString() + "ms - ok!")
-                        'If Compared = False Then Socket.Close()
+                        If Compared = False Then Socket.Close()
                         Socket.Write(SubSocket, Payload)
+                        Console.WriteLine(
+                            "DEBUG - SERVER - ASYNC INSTANCE " + SubSocket.ToString() + ": integerity is " +
+                            Compared.ToString().ToLower() + ", latency: " + Governor.Delta.ToString() + "ms")
+
                     End If
                     If (Governor.Delta/Speed) >= 0.5 Then
                         Console.WriteLine("DEBUG - SERVER - ASYNC INSTANCE " + SubSocket.ToString() + ": latency: " + Governor.Delta.ToString() + "ms - overloaded!")

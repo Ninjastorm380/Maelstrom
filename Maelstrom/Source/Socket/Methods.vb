@@ -12,16 +12,11 @@ Public Partial Class Socket
     Private Sub ReliableRead(Byref Buffer as Byte(), Byval Offset as UInt32, Byval Count as UInt32)
             Dim A as UInt32 = 0    ' Counter/Read Offset
             Dim B as UInt32 = 0    ' Retry Counter
-            Dim C as UInt32 = 1000  ' Retry Limit
+        Dim C as UInt32 = 100  ' Retry Limit
             Dim NetError As UInt32 = 0
             
             Do Until A = Count
-                Try
-                    NetError = NetSocket.Receive(Buffer, A + Offset, Count - A, SocketFlags.None)     
-                Catch
-                    NetError = 0
-                End Try
-
+                NetError = NetSocket.Receive(Buffer, A + Offset, Count - A, SocketFlags.None)
                 If NetError > 0 Then
                     A += NetError
                     B = 0
@@ -35,24 +30,34 @@ Public Partial Class Socket
             Loop
     End Sub
     
+    Private Sub ReliableWrite(Byref Buffer as Byte(), Byval Offset as UInt32, Byval Count as UInt32)
+        Dim A as UInt32 = 0    ' Counter/Read Offset
+        Dim B as UInt32 = 0    ' Retry Counter
+        Dim C as UInt32 = 100  ' Retry Limit
+        Dim NetError As UInt32 = 0
+
+        Do Until A = Count
+            NetError = NetSocket.Send(Buffer, A + Offset, Count - A, SocketFlags.None)
+            If NetError > 0 Then
+                A += NetError
+                B = 0
+            Else
+                B += 1
+                If B >= C Then
+                    IsClosed = True
+                    Exit Sub
+                End If
+            End If
+        Loop
+    End Sub
+    
     Private Sub AsyncRead
         SyncLock ReadLock
-
+            
             If NetSocket.Available < 32 Then Return
-            Dim AsyncHeader as New DataHeader 
-            Dim AsyncTransformBuffer(65535) as Byte
             ReliableRead(AsyncHeader.HeaderRaw, 0, 32)
-            
             If AsyncTransformBuffer.Length < AsyncHeader.Length Then ReDim AsyncTransformBuffer(AsyncHeader.Length - 1)
-            
-            If (AsyncHeader.SubSocketConfig And SubSocketConfigFlagLarge) <> 0 Then
-                For Offset = 0 To AsyncHeader.Length - 1 Step LargeBlockSize
-                    ReliableRead(AsyncTransformBuffer, Offset, LargeBlockSize)
-                Next
-                'ReliableRead(AsyncTransformBuffer, 0, AsyncHeader.Length)
-            Else
-                ReliableRead(AsyncTransformBuffer, 0, AsyncHeader.Length)
-            End If
+            ReliableRead(AsyncTransformBuffer, 0, AsyncHeader.Length)
             
             If (AsyncHeader.SubSocketConfig And SubSocketConfigFlag.Encrypted) <> 0 Then
                 RemoteTransform.TransformBlock(AsyncTransformBuffer,
@@ -60,13 +65,13 @@ Public Partial Class Socket
                                                AsyncHeader.EncryptedLength,
                                                AsyncTransformBuffer,
                                                0)
-            End If
-                
+            End If   
             If (AsyncHeader.SubSocketConfig And SubSocketConfigFlag.Compressed) <> 0 Then
                 RemoteDecompressor.Transform(AsyncTransformBuffer,
                                              AsyncTransformBuffer,
                                              AsyncHeader.CompressedLength)
             End If
+            
             SyncLock BufferLock
                 SubSocketBuffers(AsyncHeader.SubSocket).Write(AsyncHeader.HeaderRaw, 32)
                 SubSocketBuffers(AsyncHeader.SubSocket).Write(AsyncTransformBuffer, AsyncHeader.RawLength)
@@ -74,15 +79,16 @@ Public Partial Class Socket
         End SyncLock
     End Sub
     
-
     Public Function Read(Byval SubSocket as UInt32, Byref Data as Byte()) As UInt32
-        SyncLock BufferReadLock
-            SyncLock BufferLock
-                SubSocketBuffers(SubSocket).Read(BufferHeader.HeaderRaw, 32, 0)
-                If BufferTransformBuffer.Length < BufferHeader.RawLength Then ReDim BufferTransformBuffer(BufferHeader.RawLength - 1)
-                SubSocketBuffers(SubSocket).Read(BufferTransformBuffer, BufferHeader.RawLength, 32)
-                SubSocketBuffers(SubSocket).Shift(BufferHeader.RawLength + 32)
-            End SyncLock
+        SyncLock BufferLock
+
+
+            SubSocketBuffers(SubSocket).Read(BufferHeader.HeaderRaw, 32, 0)
+            If BufferTransformBuffer.Length < BufferHeader.RawLength Then _
+                ReDim BufferTransformBuffer(BufferHeader.RawLength - 1)
+            SubSocketBuffers(SubSocket).Read(BufferTransformBuffer, BufferHeader.RawLength, 32)
+            SubSocketBuffers(SubSocket).Shift(BufferHeader.RawLength + 32)
+
             
             ReDim Data(BufferHeader.RawLength - 1)
             Buffer.BlockCopy(BufferTransformBuffer, 0, Data, 0, BufferHeader.RawLength)
@@ -94,84 +100,72 @@ Public Partial Class Socket
         SyncLock WriteLock
             LocalHeader.RawLength = Data.Length
             LocalHeader.SubSocket = SubSocket
-            SyncLock BufferLock
-                LocalHeader.SubSocketConfig = SubSocketConfigs(SubSocket)
-            End SyncLock
+            LocalHeader.SubSocketConfig = SubSocketConfigs(SubSocket)
+
             LocalHeader.CompressedLength = 0
 
             If LocalTransformBuffer.Length < LocalHeader.RawLength Then ReDim LocalTransformBuffer(LocalHeader.RawLength - 1)
             Buffer.BlockCopy(Data, 0, LocalTransformBuffer, 0, LocalHeader.RawLength)
             
-            
-            Select Case LocalHeader.SubSocketConfig
-                Case = SubSocketConfigFlag.Compressed
-                    LocalHeader.CompressedLength = LocalCompressor.Transform(LocalTransformBuffer,
-                                                                             LocalTransformBuffer,
-                                                                             LocalHeader.RawLength)
-                Case = SubSocketConfigFlag.Compressed + SubSocketConfigFlag.Encrypted
-                    LocalHeader.CompressedLength = LocalCompressor.Transform(LocalTransformBuffer,
-                                                                             LocalTransformBuffer,
-                                                                             LocalHeader.RawLength)
-            End Select
+            If (LocalHeader.SubSocketConfig And SubSocketConfigFlag.Compressed) <> 0 Then
+                LocalHeader.CompressedLength = LocalCompressor.Transform(LocalTransformBuffer,
+                                                                         LocalTransformBuffer,
+                                                                         LocalHeader.RawLength)
+            End If
 
             If LocalTransformBuffer.Length < LocalHeader.EncryptedLength Then ReDim Preserve LocalTransformBuffer(LocalHeader.EncryptedLength - 1)
-            
-            Select Case LocalHeader.SubSocketConfig
-                Case = SubSocketConfigFlag.Compressed + SubSocketConfigFlag.Encrypted
+            If (LocalHeader.SubSocketConfig And SubSocketConfigFlag.Encrypted) <> 0 Then
+                If (LocalHeader.SubSocketConfig And SubSocketConfigFlagLarge) <> 0 Then
+                    For Offset = 0 To LocalHeader.EncryptedLength - 1 Step LargeBlockSize
+                        LocalTransform.TransformBlock(LocalTransformBuffer,
+                                                      Offset,
+                                                      LocalHeader.EncryptedLength - Offset,
+                                                      LocalTransformBuffer,
+                                                      Offset)
+                    Next
+                Else
                     LocalTransform.TransformBlock(LocalTransformBuffer,
                                                   0,
                                                   LocalHeader.EncryptedLength,
                                                   LocalTransformBuffer,
                                                   0)
-                Case = SubSocketConfigFlag.Encrypted
-                    LocalTransform.TransformBlock(LocalTransformBuffer,
-                                                  0,
-                                                  LocalHeader.EncryptedLength,
-                                                  LocalTransformBuffer,
-                                                  0)
-            End Select
-            
-            If LocalHeader.Length >= LargeBlockSize Then LocalHeader.SubSocketConfig += SubSocketConfigFlagLarge
-            If LocalTransformBuffer.Length < LocalHeader.Length Then ReDim Preserve LocalTransformBuffer(LocalHeader.Length - 1)
+                End If
+
+
+            End If
             
             Try
                 Try
-                    NetSocket.Send(LocalHeader.HeaderRaw,0, 32, SocketFlags.None)
+                    ReliableWrite(LocalHeader.HeaderRaw, 0, 32)
 
                     If LocalHeader.Length >= LargeBlockSize Then 
-                        Dim AsyncReadThread As new Threading.Thread(Addressof AsyncRead)
-                        AsyncReadThread.Start()
+                        If NetSocket.Available >= 32 Then
+                            SyncLock ReadLock
+                                If NetSocket.Available >= 32 Then
+                                    Dim AsyncReadThread As new Thread(Addressof AsyncRead)
+                                    AsyncReadThread.Start()
+                                End If
+                            End SyncLock
+                        End If
+                        
                     End If
                     
-                    
-                    If (LocalHeader.SubSocketConfig And SubSocketConfigFlagLarge) <> 0 Then
-                        'NetSocket.SendTimeout = -1
-                        For Offset = 0 To LocalHeader.Length - 1 Step LargeBlockSize
-                            NetSocket.Send(LocalTransformBuffer, Offset, LargeBlockSize, SocketFlags.None)
-                        Next
+                    ReliableWrite(LocalTransformBuffer, 0, LocalHeader.Length)
 
-                        'NetSocket.Send(LocalTransformBuffer,0, LocalHeader.Length, SocketFlags.None)
-                        'NetSocket.SendTimeout = 1000
-                    Else
-                        NetSocket.Send(LocalTransformBuffer,0, LocalHeader.Length, SocketFlags.None)
-                    End If
-
-
-                    
                 Catch IsDisposedEx as ObjectDisposedException
                     Isclosed = True
                 End Try
             Catch SocketError as SocketException
                 Select Case SocketError.SocketErrorCode
-                    Case = Sockets.SocketError.Shutdown
+                    Case = System.Net.Sockets.SocketError.Shutdown
                         Isclosed = True
-                    Case = Sockets.SocketError.Disconnecting
+                    Case = System.Net.Sockets.SocketError.Disconnecting
                         Isclosed = True
-                    Case = Sockets.SocketError.OperationAborted
+                    Case = System.Net.Sockets.SocketError.OperationAborted
                         Isclosed = True
-                    Case = Sockets.SocketError.TimedOut
+                    Case = System.Net.Sockets.SocketError.TimedOut
                         Isclosed = True
-                    Case = Sockets.SocketError.ConnectionReset
+                    Case = System.Net.Sockets.SocketError.ConnectionReset
                         Isclosed = True
                     Case Else : Throw
                 End Select
@@ -256,15 +250,15 @@ Public Partial Class Socket
             NetSocket.Receive(ReadRawBuffer, 0, 64, SocketFlags.None)
         Catch err as SocketException
             Select Case err.SocketErrorCode
-                Case = Sockets.SocketError.Shutdown
+                Case = System.Net.Sockets.SocketError.Shutdown
                     Buffer.BlockCopy(MaelstromHeaderZeroed, 0, ReadRawBuffer, 0, 32)
-                Case = Sockets.SocketError.Disconnecting
+                Case = System.Net.Sockets.SocketError.Disconnecting
                     Buffer.BlockCopy(MaelstromHeaderZeroed, 0, ReadRawBuffer, 0, 32)
-                Case = Sockets.SocketError.OperationAborted
+                Case = System.Net.Sockets.SocketError.OperationAborted
                     Buffer.BlockCopy(MaelstromHeaderZeroed, 0, ReadRawBuffer, 0, 32)
-                Case = Sockets.SocketError.TimedOut
+                Case = System.Net.Sockets.SocketError.TimedOut
                     Buffer.BlockCopy(MaelstromHeaderZeroed, 0, ReadRawBuffer, 0, 32)
-                Case = Sockets.SocketError.ConnectionReset
+                Case = System.Net.Sockets.SocketError.ConnectionReset
                     Buffer.BlockCopy(MaelstromHeaderZeroed, 0, ReadRawBuffer, 0, 32)
                 Case Else : Throw
             End Select
@@ -283,7 +277,7 @@ Public Partial Class Socket
         Return 0
     End Function
 
-    Friend Function Init(TransportSocket as Sockets.Socket, ServerSpawned as Boolean) as SocketError
+    Friend Function Init(TransportSocket as System.Net.Sockets.Socket, ServerSpawned as Boolean) as SocketError
 
         'Set up base variables
         NetSocket = TransportSocket
@@ -389,8 +383,8 @@ End SyncLock
 
     Public Sub Close()
         IsClosed = True
-        SyncLock ReadLock
-            SyncLock WriteLock
+        SyncLock WriteLock
+            SyncLock ReadLock
                 NetSocket.Close()
             End SyncLock
         End SyncLock
@@ -400,8 +394,8 @@ End SyncLock
         If IsDisposed = False
             IsClosed = True
             IsDisposed = True
-            SyncLock ReadLock
-                SyncLock WriteLock
+            SyncLock WriteLock
+                SyncLock ReadLock
                     NetSocket.Close()
                     LocalCSP.Dispose()
                     LocalTransform.Dispose()
