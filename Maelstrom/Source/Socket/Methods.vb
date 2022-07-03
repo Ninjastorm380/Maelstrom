@@ -55,47 +55,60 @@ Public Partial Class Socket
         SyncLock ReadLock
             
             If NetSocket.Available < 32 Then Return
-            ReliableRead(AsyncHeader.HeaderRaw, 0, 32)
-            If AsyncTransformBuffer.Length < AsyncHeader.Length Then ReDim AsyncTransformBuffer(AsyncHeader.Length - 1)
-            ReliableRead(AsyncTransformBuffer, 0, AsyncHeader.Length)
+            ReliableRead(RemoteHeader.HeaderRaw, 0, 32)
+            If RemoteTransformBuffer.Length < RemoteHeader.Length Then _
+                ReDim RemoteTransformBuffer(RemoteHeader.Length - 1)
+            ReliableRead(RemoteTransformBuffer, 0, RemoteHeader.Length)
             
-            If (AsyncHeader.SubSocketConfig And SubSocketConfigFlag.Encrypted) <> 0 Then
-                RemoteTransform.TransformBlock(AsyncTransformBuffer,
+            If (RemoteHeader.SubSocketConfig And SubSocketConfigFlag.Encrypted) <> 0 Then
+                RemoteTransform.TransformBlock(RemoteTransformBuffer,
                                                0,
-                                               AsyncHeader.EncryptedLength,
-                                               AsyncTransformBuffer,
+                                               RemoteHeader.EncryptedLength,
+                                               RemoteTransformBuffer,
                                                0)
             End If   
-            If (AsyncHeader.SubSocketConfig And SubSocketConfigFlag.Compressed) <> 0 Then
-                RemoteDecompressor.Transform(AsyncTransformBuffer,
-                                             AsyncTransformBuffer,
-                                             AsyncHeader.CompressedLength)
+            If (RemoteHeader.SubSocketConfig And SubSocketConfigFlag.Compressed) <> 0 Then
+                RemoteDecompressor.Transform(RemoteTransformBuffer,
+                                             RemoteTransformBuffer,
+                                             RemoteHeader.CompressedLength)
             End If
             
             SyncLock BufferLock
-                SubSocketBuffers(AsyncHeader.SubSocket).Write(AsyncHeader.HeaderRaw, 32)
-                SubSocketBuffers(AsyncHeader.SubSocket).Write(AsyncTransformBuffer, AsyncHeader.RawLength)
+                SubSocketBuffers(RemoteHeader.SubSocket).Write(RemoteHeader.HeaderRaw, 32)
+                SubSocketBuffers(RemoteHeader.SubSocket).Write(RemoteTransformBuffer, RemoteHeader.RawLength)
             End SyncLock
         End SyncLock
     End Sub
     
+    ''' <summary>
+    ''' Reads data from a subsocket buffer.
+    ''' </summary>
+    ''' <param name="SubSocket">Subsocket buffer to read data from.</param>
+    ''' <param name="Data">Output buffer to write to.</param>
+    ''' <remarks></remarks>
     Public Function Read(Byval SubSocket as UInt32, Byref Data as Byte()) As UInt32
         SyncLock BufferLock
 
 
-            SubSocketBuffers(SubSocket).Read(BufferHeader.HeaderRaw, 32, 0)
-            If BufferTransformBuffer.Length < BufferHeader.RawLength Then _
-                ReDim BufferTransformBuffer(BufferHeader.RawLength - 1)
-            SubSocketBuffers(SubSocket).Read(BufferTransformBuffer, BufferHeader.RawLength, 32)
-            SubSocketBuffers(SubSocket).Shift(BufferHeader.RawLength + 32)
+            SubSocketBuffers(SubSocket).Read(ReadHeader.HeaderRaw, 32, 0)
+            If ReadTransformBuffer.Length < ReadHeader.RawLength Then _
+                ReDim ReadTransformBuffer(ReadHeader.RawLength - 1)
+            SubSocketBuffers(SubSocket).Read(ReadTransformBuffer, ReadHeader.RawLength, 32)
+            SubSocketBuffers(SubSocket).Shift(ReadHeader.RawLength + 32)
 
             
-            ReDim Data(BufferHeader.RawLength - 1)
-            Buffer.BlockCopy(BufferTransformBuffer, 0, Data, 0, BufferHeader.RawLength)
-            Return BufferHeader.RawLength
+            ReDim Data(ReadHeader.RawLength - 1)
+            Buffer.BlockCopy(ReadTransformBuffer, 0, Data, 0, ReadHeader.RawLength)
+            Return ReadHeader.RawLength
         End SyncLock
     End Function
 
+    ''' <summary>
+    ''' Serializes data directly to the underlying network stream.
+    ''' </summary>
+    ''' <param name="SubSocket">Subsocket to write to.</param>
+    ''' <param name="Data">Input buffer to read from.</param>
+    ''' <remarks></remarks>
     Public Sub Write(Byval SubSocket as UInt32, Data as Byte())
         SyncLock WriteLock
             LocalHeader.RawLength = Data.Length
@@ -172,7 +185,7 @@ Public Partial Class Socket
             End Try
         End SyncLock
     End Sub
-
+    
     Private Function IsConnected As Boolean
         If IsDisposed = True Then Return False
         If IsClosed = True Then Return False
@@ -352,26 +365,45 @@ Public Partial Class Socket
         Return 0
     End Function
 
+    ''' <summary>
+    ''' Creates a subsocket, along with all the necessary underlying buffers and configurations.
+    ''' </summary>
+    ''' <param name="SubSocket">Subsocket to create.</param>
+    ''' <remarks></remarks>
     Public Sub CreateSubSocket(SubSocket as UInt32)
         SyncLock BufferLock
-        SubSocketBuffers.Add(SubSocket, New QueueStream())
-        SubSocketConfigs.Add(SubSocket, SubSocketConfigFlag.Nothing)
-End SyncLock
+            SubSocketBuffers.Add(SubSocket, New QueueStream())
+            SubSocketConfigs.Add(SubSocket, SubSocketConfigFlag.Nothing)
+        End SyncLock
     End Sub
 
+    ''' <summary>
+    ''' Removes a subsocket, along with any underlying buffers and configurations.
+    ''' </summary>
+    ''' <param name="SubSocket">Subsocket to remove.</param>
+    ''' <remarks></remarks>
     Public Sub RemoveSubSocket(SubSocket as UInt32)
         SyncLock BufferLock
-        SubSocketBuffers.Remove(SubSocket)
-        SubSocketConfigs.Remove(SubSocket)
-End SyncLock
+            SubSocketBuffers.Remove(SubSocket)
+            SubSocketConfigs.Remove(SubSocket)
+        End SyncLock
     End Sub
 
+    ''' <summary>
+    ''' Boolean. Checks if a given subsocket has already been created.
+    ''' </summary>
+    ''' <param name="SubSocket">Subsocket to check for.</param>
+    ''' <remarks></remarks>
     Public Function SubSocketExists(SubSocket as UInt32) As Boolean
         SyncLock BufferLock
         Return SubSocketBuffers.Contains(SubSocket)
             End SyncLock
     End Function
 
+    ''' <summary>
+    ''' Unsigned 32 bit integer. Gets the next available subsocket, including reclaimed subsockets.
+    ''' </summary>
+    ''' <remarks></remarks>
     Public Function GetFreeSubSocket() As UInt32
         SyncLock BufferLock
         For SubSocket = 0 to UInt32.MaxValue - 1
@@ -381,6 +413,10 @@ End SyncLock
         Throw New SubSocketsExhaustedException("No more subsockets available! Free subsockets by calling method 'RemoveSubSocket(SubSocket as UInt32)'!")
     End Function
 
+    ''' <summary>
+    ''' Closes this maelstrom socket, along with the underlying net.sockets.socket.
+    ''' </summary>
+    ''' <remarks></remarks>
     Public Sub Close()
         IsClosed = True
         SyncLock WriteLock
@@ -390,6 +426,10 @@ End SyncLock
         End SyncLock
     End Sub
 
+    ''' <summary>
+    ''' Closes this maelstrom socket, along with the underlying net.sockets.socket.
+    ''' </summary>
+    ''' <remarks></remarks>
     Public Sub Dispose() Implements IDisposable.Dispose
         If IsDisposed = False
             IsClosed = True

@@ -96,12 +96,10 @@ Public Partial Class Socket : Implements IDisposable
     Private RemoteTimestamp as DateTime
     Private RemoteRNG as VariableRNG
 
-        Private BufferHeader as New DataHeader
-        Private BufferTransformBuffer(65535) as Byte
-        Private HasDataHeader as New DataHeader
-        Private HasDataTransformBuffer(65535) as Byte
-        Private AsyncHeader as New DataHeader
-        Private AsyncTransformBuffer(65535) as Byte
+        Private ReadHeader as New DataHeader
+        Private ReadTransformBuffer(65535) as Byte
+        Private RemoteHeader as New DataHeader
+        Private RemoteTransformBuffer(65535) as Byte
     
     'Write variables. Each of these variables are involved with writing to the network stream in one form or another, and must be guarded by a lock.
     Private LocalCSP as AesCryptoServiceProvider

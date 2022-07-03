@@ -1,4 +1,3 @@
-Imports System.IO
 Imports System.Threading
 Imports Maelstrom
 
@@ -42,9 +41,9 @@ Friend Class TestServer : Inherits ServerBase
     Protected Overrides Sub OnConnectionForged(Socket As Socket)
         Console.WriteLine("DEBUG - SERVER: client has connected")
         Console.WriteLine("DEBUG - SERVER: creating async instances....") 
-        Payload = File.ReadAllBytes("./data.bin")
+        'Payload = File.ReadAllBytes("./data.bin")
         SyncLock WaitLock
-            For x = 0 to 1
+            For x = 0 to 63
                 CreateAsyncInstance(Socket,x)
                 Console.WriteLine("DEBUG - SERVER: async instance " + x.ToString() + " created.") 
             Next
@@ -71,7 +70,7 @@ Friend Class TestServer : Inherits ServerBase
                 Dim Buffer as Byte() = Nothing
                 Dim Compared as Boolean = True
                 Socket.CreateSubSocket(SubSocket)
-                Socket.ConfigureSubSocket(SubSocket) = SubSocketConfigFlag.Encrypted + SubSocketConfigFlag.Compressed
+                'Socket.ConfigureSubSocket(SubSocket) = SubSocketConfigFlag.Encrypted + SubSocketConfigFlag.Compressed
                 
                 Console.WriteLine("DEBUG - SERVER - ASYNC INSTANCE " + SubSocket.ToString() + ": awaiting unlock...") 
                 SyncLock WaitLock : End SyncLock

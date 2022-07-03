@@ -1,4 +1,10 @@
 Public Partial Class Socket : Implements IDisposable
+
+    ''' <summary>
+    ''' SubSocketConfigFlag. Gets or sets the configuration for a particular subsocket.
+    ''' </summary>
+    ''' <param name="SubSocket">Subsocket to get or set configuration on.</param>
+    ''' <remarks></remarks>
     Public Property ConfigureSubSocket(SubSocket As UInt32) as SubsocketConfigFlag
         get
             SyncLock BufferLock
@@ -12,6 +18,11 @@ Public Partial Class Socket : Implements IDisposable
         End Set
     End Property
     
+    ''' <summary>
+    ''' Boolean. Returns true if this maelstrom socket is still connected, otherwise false.
+    ''' </summary>
+    ''' <param name="SubSocket">Subsocket to remove.</param>
+    ''' <remarks></remarks>
     Public Readonly Property Connected as Boolean
         get
             SyncLock WriteLock
@@ -22,6 +33,11 @@ Public Partial Class Socket : Implements IDisposable
         End get
     End Property
     
+    ''' <summary>
+    ''' Checks if a subsocket buffer has data available to read. This method will read data into the appropriate subsocket buffer if there is any to read on the underlying net.sockets.socket.
+    ''' </summary>
+    ''' <param name="SubSocket">Subsocket buffer to check.</param>
+    ''' <remarks></remarks>
     Public ReadOnly Property SubSocketHasData(Byval SubSocket as UInt32) as Boolean
         get
             SyncLock BufferLock
@@ -39,31 +55,31 @@ Public Partial Class Socket : Implements IDisposable
                     If NetSocket.Available >= 32 Then
 
                         If NetSocket.Available < 32 Then Return False
-                        ReliableRead(AsyncHeader.HeaderRaw, 0, 32)
-                        If AsyncTransformBuffer.Length < AsyncHeader.Length Then _
-                            ReDim AsyncTransformBuffer(AsyncHeader.Length - 1)
-                        ReliableRead(AsyncTransformBuffer, 0, AsyncHeader.Length)
+                        ReliableRead(RemoteHeader.HeaderRaw, 0, 32)
+                        If RemoteTransformBuffer.Length < RemoteHeader.Length Then _
+                            ReDim RemoteTransformBuffer(RemoteHeader.Length - 1)
+                        ReliableRead(RemoteTransformBuffer, 0, RemoteHeader.Length)
             
-                        If (AsyncHeader.SubSocketConfig And SubSocketConfigFlag.Encrypted) <> 0 Then
-                            RemoteTransform.TransformBlock(AsyncTransformBuffer,
+                        If (RemoteHeader.SubSocketConfig And SubSocketConfigFlag.Encrypted) <> 0 Then
+                            RemoteTransform.TransformBlock(RemoteTransformBuffer,
                                                            0,
-                                                           AsyncHeader.EncryptedLength,
-                                                           AsyncTransformBuffer,
+                                                           RemoteHeader.EncryptedLength,
+                                                           RemoteTransformBuffer,
                                                            0)
                         End If
 
-                        If (AsyncHeader.SubSocketConfig And SubSocketConfigFlag.Compressed) <> 0 Then
-                            RemoteDecompressor.Transform(AsyncTransformBuffer,
-                                                         AsyncTransformBuffer,
-                                                         AsyncHeader.CompressedLength)
+                        If (RemoteHeader.SubSocketConfig And SubSocketConfigFlag.Compressed) <> 0 Then
+                            RemoteDecompressor.Transform(RemoteTransformBuffer,
+                                                         RemoteTransformBuffer,
+                                                         RemoteHeader.CompressedLength)
                         End If
 
                         SyncLock BufferLock
-                            SubSocketBuffers(AsyncHeader.SubSocket).Write(AsyncHeader.HeaderRaw, 32)
-                            SubSocketBuffers(AsyncHeader.SubSocket).Write(AsyncTransformBuffer, AsyncHeader.RawLength)
+                            SubSocketBuffers(RemoteHeader.SubSocket).Write(RemoteHeader.HeaderRaw, 32)
+                            SubSocketBuffers(RemoteHeader.SubSocket).Write(RemoteTransformBuffer, RemoteHeader.RawLength)
                         End SyncLock
 
-                        Return (AsyncHeader.SubSocket = SubSocket)
+                        Return (RemoteHeader.SubSocket = SubSocket)
                     End If
                 End SyncLock
             End If
