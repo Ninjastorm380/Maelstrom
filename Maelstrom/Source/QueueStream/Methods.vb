@@ -14,14 +14,15 @@ Partial Friend Class QueueStream (Of T)
     ''' </summary>
     ''' <param name="Output">Array to store copied data in.</param>
     ''' <param name="Count">Number of elements to copy.</param>
-    ''' <param name="Seek">Offset to copy from.</param>
+    ''' <param name="Seek">Location in this QueueStream instance to seek to before copying.</param>
+    ''' <param name="Offset">Location in Output to begin storing elements at.</param>
     ''' <remarks></remarks>
-    Public Sub Read(ByRef Output As T(), Count As UInt32, Optional Seek as UInt32 = 0)
-        BlockCopy(BaseBuffer, Seek, Output, 0, Count)
+    Public Sub Read(ByRef Output As T(), Count As UInt32, Optional Seek as UInt32 = 0, Optional Offset As UInt32 = 0)
+        BlockCopy(BaseBuffer, Seek, Output, Offset, Count)
     End Sub
 
     ''' <summary>
-    ''' Shifts data by the specfied amount of bytes towards the start of the QueueStream, overwriting existing data at that location.
+    ''' Shifts data by the specfied amount of elements towards the start of the QueueStream, overwriting existing elements at that location.
     ''' </summary>
     ''' <param name="Count">Number of elements to shift by.</param>
     ''' <remarks></remarks>
@@ -32,15 +33,16 @@ Partial Friend Class QueueStream (Of T)
     End Sub
 
     ''' <summary>
-    ''' Copies data to the end of a QueueStream, expanding capacity as necessary.
+    ''' Copies elements to the end of a QueueStream, expanding capacity as necessary.
     ''' </summary>
     ''' <param name="Input">Array to copy in.</param>
     ''' <param name="Count">Number of elements to copy from Input.</param>
+    ''' <param name="Offset">Offset in Input to copy from.</param>
     ''' <remarks></remarks>
-    Public Sub Write(ByRef Input as T(), Count as UInt32)
+    Public Sub Write(ByRef Input as T(), Count as UInt32, Optional Offset As UInt32 = 0)
         WritePointerTemp = WritePointer + Count
         If BaseBuffer.Length < WritePointerTemp Then ReDim Preserve BaseBuffer(WritePointerTemp - 1)
-        BlockCopy(Input, 0, BaseBuffer, WritePointer, Count)
+        BlockCopy(Input, Offset, BaseBuffer, WritePointer, Count)
         WritePointer = WritePointerTemp
     End Sub
 

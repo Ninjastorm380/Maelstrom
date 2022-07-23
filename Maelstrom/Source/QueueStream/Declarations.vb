@@ -13,13 +13,13 @@ Partial Friend Class QueueStream (Of T)
     Private BaseBuffer(65535) As T
 
     ''' <summary>
-    ''' 32 bit integer. Stores the current offset for writing into InternalBuffer.
+    ''' 32 bit integer. Stores the current location for writing into InternalBuffer.
     ''' </summary>
     ''' <remarks></remarks>
     Private WritePointer As UInt32 = 0
 
     ''' <summary>
-    ''' 32 bit integer. Stores the future offset for writing into InternalBuffer.
+    ''' 32 bit integer. Stores the future location for writing into InternalBuffer.
     ''' WriteOffset is set to the value of FutureWriteOffset after every shift operation and every write operation.
     ''' </summary>
     ''' <remarks></remarks>
