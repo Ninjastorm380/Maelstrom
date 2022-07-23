@@ -77,7 +77,9 @@ Public Partial Class Socket : Implements IDisposable
         ''' Base variable for the subsockets feature. Maps each UInt32 subsocket to a QueueStream.
         ''' </summary>
         ''' <remarks></remarks>
-    Private SubSocketBuffers as RapidDictionary(Of UInt32, QueueStream) = New RapidDictionary(Of UInteger,QueueStream)()
+        Private _
+            SubSocketBuffers as RapidDictionary(Of UInt32, QueueStream(Of Byte)) =
+                New RapidDictionary(Of UInteger,QueueStream(Of Byte))()
         
         ''' <summary>
         ''' Base variable for the subsockets feature. Maps each UInt32 subsocket to a SubSocketConfigFlag.

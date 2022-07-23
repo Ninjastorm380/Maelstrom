@@ -45,6 +45,7 @@
         "netcoreapp3.1"
       ],
       "sources": {
+        "/home/prydaran/nuget source/MonoGame/Artifacts/NuGet/": {},
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {

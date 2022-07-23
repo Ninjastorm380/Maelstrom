@@ -372,7 +372,7 @@ Public Partial Class Socket
     ''' <remarks></remarks>
     Public Sub CreateSubSocket(SubSocket as UInt32)
         SyncLock BufferLock
-            SubSocketBuffers.Add(SubSocket, New QueueStream())
+            SubSocketBuffers.Add(SubSocket, New QueueStream(Of Byte))
             SubSocketConfigs.Add(SubSocket, SubSocketConfigFlag.Nothing)
         End SyncLock
     End Sub
@@ -409,7 +409,7 @@ Public Partial Class Socket
         For SubSocket = 0 to UInt32.MaxValue - 1
             If SubSocketBuffers.Contains(SubSocket) = False Then Return SubSocket
         Next
-            End SyncLock
+        End SyncLock
         Throw New SubSocketsExhaustedException("No more subsockets available! Free subsockets by calling method 'RemoveSubSocket(SubSocket as UInt32)'!")
     End Function
 
