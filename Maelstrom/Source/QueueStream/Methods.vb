@@ -1,4 +1,4 @@
-Partial Public Class QueueStream (Of T)
+Partial Friend Class QueueStream (Of T)
 
     ''' <summary>
     ''' Creates a new QueueStream instance.
@@ -6,7 +6,7 @@ Partial Public Class QueueStream (Of T)
     ''' <param name="InitialCapacity">Initial capacity of the QueueStream, which will automatically expand as needed.</param>
     ''' <remarks></remarks>
     Public Sub New(Optional InitialCapacity As UInt32 = 65536)
-        redim InternalBuffer(InitialCapacity - 1)
+        redim BaseBuffer(InitialCapacity - 1)
     End Sub
 
     ''' <summary>
@@ -17,7 +17,7 @@ Partial Public Class QueueStream (Of T)
     ''' <param name="Seek">Offset to copy from.</param>
     ''' <remarks></remarks>
     Public Sub Read(ByRef Output As T(), Count As UInt32, Optional Seek as UInt32 = 0)
-        BlockCopy(InternalBuffer, Seek, Output, 0, Count)
+        BlockCopy(BaseBuffer, Seek, Output, 0, Count)
     End Sub
 
     ''' <summary>
@@ -26,9 +26,9 @@ Partial Public Class QueueStream (Of T)
     ''' <param name="Count">Number of elements to shift by.</param>
     ''' <remarks></remarks>
     Public Sub Shift(Count As UInt32)
-        FutureWriteOffset = WriteOffset - Count
-        if FutureWriteOffset > 0 Then BlockCopy(InternalBuffer, Count, InternalBuffer, 0, FutureWriteOffset)
-        WriteOffset = FutureWriteOffset
+        WritePointerTemp = WritePointer - Count
+        if WritePointerTemp > 0 Then BlockCopy(BaseBuffer, Count, BaseBuffer, 0, WritePointerTemp)
+        WritePointer = WritePointerTemp
     End Sub
 
     ''' <summary>
@@ -38,10 +38,10 @@ Partial Public Class QueueStream (Of T)
     ''' <param name="Count">Number of elements to copy from Input.</param>
     ''' <remarks></remarks>
     Public Sub Write(ByRef Input as T(), Count as UInt32)
-        FutureWriteOffset = WriteOffset + Count
-        If InternalBuffer.Length < FutureWriteOffset Then ReDim Preserve InternalBuffer(FutureWriteOffset - 1)
-        BlockCopy(Input, 0, InternalBuffer, WriteOffset, Count)
-        WriteOffset = FutureWriteOffset
+        WritePointerTemp = WritePointer + Count
+        If BaseBuffer.Length < WritePointerTemp Then ReDim Preserve BaseBuffer(WritePointerTemp - 1)
+        BlockCopy(Input, 0, BaseBuffer, WritePointer, Count)
+        WritePointer = WritePointerTemp
     End Sub
 
     ''' <summary>
