@@ -131,7 +131,7 @@ Public Partial Class Socket : Implements IDisposable
         
     Public Sub Add(Byval Subsocket as UInt32)
         SyncLock BufferLock
-            SubsocketBuffers.Add(Subsocket, New Lightning.QueueStream(Of Byte))
+            SubsocketBuffers.Add(Subsocket, New QueueStream(Of Byte))
             SubsocketEncryptionFlags.Add(Subsocket, 0)
             SubsocketCompressionFlags.Add(Subsocket, 0)
         End SyncLock

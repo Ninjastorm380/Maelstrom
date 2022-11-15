@@ -2,8 +2,6 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "Maelstrom", "Maelstrom\Maelstrom.vbproj", "{5CCE6FEA-8ABD-4E0D-AA78-00A3074ACBDB}"
 EndProject
-Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "Tests", "Tests\Tests.vbproj", "{B03A50EF-79DD-4578-AFF0-9597FD57E525}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -14,9 +12,5 @@ Global
 		{5CCE6FEA-8ABD-4E0D-AA78-00A3074ACBDB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5CCE6FEA-8ABD-4E0D-AA78-00A3074ACBDB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5CCE6FEA-8ABD-4E0D-AA78-00A3074ACBDB}.Release|Any CPU.Build.0 = Release|Any CPU
-		{B03A50EF-79DD-4578-AFF0-9597FD57E525}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{B03A50EF-79DD-4578-AFF0-9597FD57E525}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{B03A50EF-79DD-4578-AFF0-9597FD57E525}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{B03A50EF-79DD-4578-AFF0-9597FD57E525}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

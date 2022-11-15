@@ -1,3 +1,3 @@
 Public Partial MustInherit Class ClientBase
-    Private WithEvents BaseSocket As Lightning.Socket
+    Private WithEvents BaseSocket As BaseSocket
 End Class

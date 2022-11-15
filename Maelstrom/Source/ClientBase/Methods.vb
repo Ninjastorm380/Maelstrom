@@ -1,6 +1,6 @@
 Public Partial MustInherit Class ClientBase
     Public Sub New
-        BaseSocket = New Lightning.Socket
+        BaseSocket = New BaseSocket
     End Sub
     
     Public Sub Connect(Endpoint As Net.IPEndPoint)
@@ -15,7 +15,7 @@ Public Partial MustInherit Class ClientBase
         End If
     End Sub
     
-    Private Sub SocketConnected(NewSocket As Lightning.Socket) Handles BaseSocket.SocketConnected
+    Private Sub SocketConnected(NewSocket As BaseSocket) Handles BaseSocket.SocketConnected
         
         Dim AsyncThread As New Threading.Thread(AddressOf Main)
         
