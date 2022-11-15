@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <RootNamespace>Maelstrom</RootNamespace>
+        <TargetFramework>netstandard2.0</TargetFramework>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <Reference Include="LightningConstructs, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null">
+        <HintPath>..\..\LightningConstructs\LightningConstructs\bin\Release\netstandard2.0\LightningConstructs.dll</HintPath>
+      </Reference>
+    </ItemGroup>
+
+</Project>
