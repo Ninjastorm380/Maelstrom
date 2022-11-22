@@ -63,16 +63,11 @@ Friend Partial Class BaseSocket : Implements IDisposable
                 ReadRetryCurrent = 0
                 If ReadGovernor.Paused = True Then ReadGovernor.Resume()
                 Do
+                    If NetSocket Is Nothing Then Return 0
+                    If IsConnected = False Then Return 0
+                    If NetSocket.Connected = False Then Return 0
                     ReadAvailableSnapshot = 0
-                    Try
-                        ReadAvailableSnapshot = NetSocket.Available
-                    Catch Item As Net.Sockets.SocketException
-                        Select Case Item.SocketErrorCode
-                            Case = Net.Sockets.SocketError.OperationAborted
-                            Case Else : Throw
-                        End Select
-                    End Try
-                    
+                    ReadAvailableSnapshot = NetSocket.Available
                     If ReadAvailableSnapshot > 0 Then
                         If ReadAvailableSnapshot < Length Then
                             ReadRetryResult = NetSocket.Receive(Buffer, ReadRetryCounter + Offset, ReadAvailableSnapshot - ReadRetryCounter, Flags)
