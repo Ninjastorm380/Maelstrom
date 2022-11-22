@@ -15,12 +15,9 @@
             End Get
         End Property
 
-        
-        Public Property UseExtremePrecision As Boolean = False
-
         Public ReadOnly Property Delta As Double
             Get
-                Return BaseDelta / CDbl(BaseTimeConstant)
+                Return CDbl(BaseDelta) / CDbl(BaseTimeConstant)
             End Get
         End Property
 

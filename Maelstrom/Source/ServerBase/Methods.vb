@@ -5,6 +5,7 @@ Public Partial MustInherit Class ServerBase
     
     Public Sub Listen(Endpoint As Net.IPEndPoint)
         If BaseSocket.Listening = False Then
+            Load()
             BaseSocket.Listen(Endpoint)
         End If
     End Sub
@@ -12,6 +13,7 @@ Public Partial MustInherit Class ServerBase
     Public Sub Deafen()
         If BaseSocket.Listening = True Then
             BaseSocket.Deafen
+            Unload()
         End If
     End Sub
     
@@ -105,6 +107,7 @@ Public Partial MustInherit Class ServerBase
             WrapperSocket.NetSocket.Disconnect()
         End If
     End Sub
-    
+    Public MustOverride Sub Load()
+    Public MustOverride Sub Unload()
     Public MustOverride Sub Main(Socket As Socket)
 End Class

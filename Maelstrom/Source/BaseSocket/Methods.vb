@@ -1,4 +1,6 @@
-    Friend Partial Class BaseSocket : Implements IDisposable
+
+
+Friend Partial Class BaseSocket : Implements IDisposable
         Public Sub New()
             NetSocket.DualMode = True
             NetSocket.LingerState = New Net.Sockets.LingerOption(True, 30)
@@ -61,7 +63,16 @@
                 ReadRetryCurrent = 0
                 If ReadGovernor.Paused = True Then ReadGovernor.Resume()
                 Do
-                    ReadAvailableSnapshot = NetSocket.Available
+                    ReadAvailableSnapshot = 0
+                    Try
+                        ReadAvailableSnapshot = NetSocket.Available
+                    Catch Item As Net.Sockets.SocketException
+                        Select Case Item.SocketErrorCode
+                            Case = Net.Sockets.SocketError.OperationAborted
+                            Case Else : Throw
+                        End Select
+                    End Try
+                    
                     If ReadAvailableSnapshot > 0 Then
                         If ReadAvailableSnapshot < Length Then
                             ReadRetryResult = NetSocket.Receive(Buffer, ReadRetryCounter + Offset, ReadAvailableSnapshot - ReadRetryCounter, Flags)
