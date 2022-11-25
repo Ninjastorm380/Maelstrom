@@ -18,7 +18,7 @@ Public Partial MustInherit Class ServerBase
     End Sub
     
     Private Sub SocketConnected(NewSocket As BaseSocket) Handles BaseSocket.SocketConnected
-        Dim AsyncThread As New Threading.Thread(AddressOf Main)
+
         
         Dim WrapperSocket As New Socket
         
@@ -77,6 +77,8 @@ Public Partial MustInherit Class ServerBase
         
         
         If TempRetryResult = 0 Then
+            Dim AsyncThread As New Threading.Thread(AddressOf Main)
+            
             UnpackUInt32(HandshakeReceiveBuffer, 32, OpposingPortB)
             UnpackUInt32(HandshakeReceiveBuffer, 36, OpposingPortA)
             UnpackTimestamp(HandshakeReceiveBuffer,40, ReceiveTimestamp)
@@ -102,12 +104,13 @@ Public Partial MustInherit Class ServerBase
             WrapperSocket.SendCryptographer = New Cryptographer(SendVRNG, Cryptographer.Type.Encryption)
             WrapperSocket.HeaderReceiveCryptographer = New Cryptographer(ReceiveVRNG, Cryptographer.Type.Decryption)
             WrapperSocket.ReceiveCryptographer = New Cryptographer(ReceiveVRNG, Cryptographer.Type.Decryption)
+            
             AsyncThread.Start(WrapperSocket)
         Else
             WrapperSocket.NetSocket.Disconnect()
         End If
     End Sub
-    Public MustOverride Sub Load()
-    Public MustOverride Sub Unload()
-    Public MustOverride Sub Main(Socket As Socket)
+    Protected MustOverride Sub Load()
+    Protected MustOverride Sub Unload()
+    Protected MustOverride Sub Main(Socket As Socket)
 End Class

@@ -5,6 +5,7 @@ Public Partial MustInherit Class ClientBase
     
     Public Sub Connect(Endpoint As Net.IPEndPoint)
         If BaseSocket.Connected = False Then
+            Load()
             BaseSocket.Connect(Endpoint)
         End If
     End Sub
@@ -12,12 +13,13 @@ Public Partial MustInherit Class ClientBase
     Public Sub Disconnect()
         If BaseSocket.Connected = True Then
             BaseSocket.Disconnect
+            Unload()
         End If
     End Sub
     
     Private Sub SocketConnected(NewSocket As BaseSocket) Handles BaseSocket.SocketConnected
         
-        Dim AsyncThread As New Threading.Thread(AddressOf Main)
+
         
         Dim WrapperSocket As New Socket
         
@@ -76,6 +78,8 @@ Public Partial MustInherit Class ClientBase
         
         
         If TempRetryResult = 0 Then
+            Dim AsyncThread As New Threading.Thread(AddressOf Main)
+            
             UnpackUInt32(HandshakeReceiveBuffer, 32, OpposingPortB)
             UnpackUInt32(HandshakeReceiveBuffer, 36, OpposingPortA)
             UnpackTimestamp(HandshakeReceiveBuffer,40, ReceiveTimestamp)
@@ -108,5 +112,7 @@ Public Partial MustInherit Class ClientBase
         End If
     End Sub
     
-    Public MustOverride Sub Main(Socket As Socket)
+    Protected MustOverride Sub Main(Socket As Socket)
+    Protected MustOverride Sub Load()
+    Protected MustOverride Sub Unload()
 End Class
