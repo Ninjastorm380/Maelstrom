@@ -1,6 +1,4 @@
-
-
-Friend Partial Class BaseSocket : Implements IDisposable
+    Public Partial Class BaseSocket : Implements IDisposable
         Public Sub New()
             NetSocket.DualMode = True
             NetSocket.LingerState = New Net.Sockets.LingerOption(True, 30)
@@ -57,16 +55,12 @@ Friend Partial Class BaseSocket : Implements IDisposable
             If NetSocket Is Nothing Then Return 0
             If IsConnected = False Then Return 0
             If NetSocket.Connected = False Then Return 0
+
             SyncLock ReadLock
                 ReadRetryResult = 0
                 ReadRetryCounter = 0
                 ReadRetryCurrent = 0
-                If ReadGovernor.Paused = True Then ReadGovernor.Resume()
                 Do
-                    If NetSocket Is Nothing Then Return 0
-                    If IsConnected = False Then Return 0
-                    If NetSocket.Connected = False Then Return 0
-                    ReadAvailableSnapshot = 0
                     ReadAvailableSnapshot = NetSocket.Available
                     If ReadAvailableSnapshot > 0 Then
                         If ReadAvailableSnapshot < Length Then
@@ -77,23 +71,23 @@ Friend Partial Class BaseSocket : Implements IDisposable
                     Else
                         ReadRetryResult = 0
                     End If
+
                     ReadRetryCounter += ReadRetryResult
                     If ReadRetryResult > 0 Then
                         ReadRetryCurrent = 0.0
-                        If ReadGovernor.Paused = False Then ReadGovernor.Pause()
                     Else 
-                        If ReadGovernor.Paused = True Then ReadGovernor.Resume()
-                        ReadRetryCurrent += ReadGovernor.IterationElapsed
+                        ReadRetryCurrent += ReadGovernor.Delta
                         If ReadRetryCurrent >= ReadRetryMax Then
-                            If ReadGovernor.Paused = False Then ReadGovernor.Pause()
                             Return ReadRetryCounter
                         End If
-                        ReadGovernor.Limit()
                     End If
+                    ReadGovernor.Limit()
                 Loop Until ReadRetryCounter = Length Or IsConnected = False
-                If ReadGovernor.Paused = False Then ReadGovernor.Pause()
                 Return ReadRetryCounter
             End SyncLock
+            
+            
+
         End Function
 
         Public Function Write(ByRef Buffer As Byte(), ByVal Offset As Int32, ByVal Length As Int32, ByVal Flags As Net.Sockets.SocketFlags) As Int32
@@ -104,7 +98,6 @@ Friend Partial Class BaseSocket : Implements IDisposable
                 WriteRetryResult = 0
                 WriteRetryCounter = 0
                 WriteRetryCurrent = 0
-                If WriteGovernor.Paused = True Then WriteGovernor.Resume()
                 Do 
                     Try
                         WriteRetryResult = NetSocket.Send(Buffer, WriteRetryCounter + Offset, Length - WriteRetryCounter, Flags)
@@ -114,18 +107,15 @@ Friend Partial Class BaseSocket : Implements IDisposable
                     WriteRetryCounter += WriteRetryResult
                     If WriteRetryResult > 0 Then
                         WriteRetryCurrent = 0.0
-                        If WriteGovernor.Paused = False Then WriteGovernor.Pause()
                     Else 
-                        If WriteGovernor.Paused = True Then WriteGovernor.Resume()
-                        WriteRetryCurrent += WriteGovernor.IterationElapsed
-                        If WriteRetryCurrent >= WriteRetryMax Then
-                            If WriteGovernor.Paused = False Then WriteGovernor.Pause()
+                        WriteRetryCurrent += WriteGovernor.Delta
+                        If WriteRetryCurrent >= WriteRetryMax Then 
                             Return WriteRetryCounter
                         End If
-                        WriteGovernor.Limit()
+
                     End If
+                    WriteGovernor.Limit()
                 Loop Until WriteRetryCounter = Length Or IsConnected = False
-                If WriteGovernor.Paused = False Then WriteGovernor.Pause()
                 Return WriteRetryCounter
             End SyncLock
         End Function
@@ -136,7 +126,7 @@ Friend Partial Class BaseSocket : Implements IDisposable
                     Dim NewSocketBase = NetSocket.Accept()
                     Dim NewSocket = New BaseSocket()
                     NewSocket.HookupSocket(NewSocketBase)
-                    Dim AsyncThread As New Threading.Thread(Sub()
+                    Dim AsyncThread As System.Threading.Thread = New Threading.Thread(Sub()
                         RaiseEvent SocketConnected(NewSocket)
                     End Sub)
                     AsyncThread.Start()

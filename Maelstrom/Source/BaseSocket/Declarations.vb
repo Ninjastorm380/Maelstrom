@@ -1,4 +1,4 @@
-    Friend Partial Class BaseSocket
+    Public Partial Class BaseSocket
         Private NetSocket As Net.Sockets.Socket = New Net.Sockets.Socket(Net.Sockets.SocketType.Stream, Net.Sockets.ProtocolType.Tcp)
         Private IsListening As System.Boolean = False
         Private IsConnected As System.Boolean = False

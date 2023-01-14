@@ -1,35 +1,17 @@
-    Friend Partial Class Governor
-        Public Property Rate As Double
-            Get
-                Return BaseRate
-            End Get
-            Set(ByVal value As System.Double)
-                BaseRate = value
-                BaseTimeConstant = TimeSpan.TicksPerMillisecond * CLng((1000.0 / BaseRate))
-                BaseSleepTarget = New TimeSpan(BaseTimeConstant - BaseSleepOffsetConstant)
-            End Set
-        End Property
-        Public ReadOnly Property Paused As Boolean
-            Get
-                Return IsPaused
-            End Get
-        End Property
-
-        Public ReadOnly Property Delta As Double
-            Get
-                Return CDbl(BaseDelta) / CDbl(BaseTimeConstant)
-            End Get
-        End Property
-
-        Public ReadOnly Property DeltaInverse As Double
-            Get
-                Return CDbl(BaseTimeConstant) / BaseDelta
-            End Get
-        End Property
-
-        Public ReadOnly Property IterationElapsed As Double
-            Get
-                Return Delta / 1000.0
-            End Get
-        End Property
-    End Class
+Public Partial Class Governor
+    Public Property Frequency As UInt16
+        Get
+            Return BaseFrequency
+        End Get
+        Set
+            BaseFrequency = Value
+            WaitTimespan = New TimeSpan(10000000/BaseFrequency)
+        End Set
+    End Property
+    
+    Public ReadOnly Property Delta As Double
+        Get
+            Return BaseDelta
+        End Get
+    End Property
+End Class

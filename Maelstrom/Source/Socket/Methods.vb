@@ -59,6 +59,7 @@ Public Partial Class Socket : Implements IDisposable
     Public Sub Read(Byval Subsocket as UInt32, ByRef Data as Byte())
         If Data Is Nothing Then Throw New ArgumentException("Reference cannot be nothing!", "Data")
         If Exists(Subsocket) = False Then Throw New ArgumentException("The requested subsocket does not exist!", "Subsocket")
+        AsyncReadMethod()
         SyncLock SubsocketBuffers(Subsocket)
             SubsocketBuffers(Subsocket).Read(HeaderReadBuffer, 0, 0, 32)
             UnpackUInt32(HeaderReadBuffer, 14, ReadRawLength)
@@ -83,10 +84,11 @@ Public Partial Class Socket : Implements IDisposable
             Buffer.BlockCopy(Data, 0, SendTransformBuffer, 0, SendRawLength)
             If SendEncryptedFlag <> 0 And SendCompressedFlag <> 0 Then
                 SendCompressedLength = Compression.Compress(SendTransformBuffer, SendTransformBuffer, SendRawLength)
-                SendEncryptedLength = SendRawLength + SendRawLength Mod AESBlockSize
+                SendEncryptedLength = Math.Ceiling(SendCompressedLength / AESBlockSize) * AESBlockSize
                 SendCryptographer.TransformBlock(SendTransformBuffer, SendTransformBuffer, 0, SendEncryptedLength)
             ElseIf SendEncryptedFlag <> 0 And SendCompressedFlag = 0 Then
-                SendEncryptedLength = SendRawLength + SendRawLength Mod AESBlockSize 
+                SendEncryptedLength = Math.Ceiling(SendRawLength / AESBlockSize) * AESBlockSize
+                
                 SendCryptographer.TransformBlock(SendTransformBuffer, SendTransformBuffer, 0, SendEncryptedLength)
             ElseIf SendEncryptedFlag = 0 And SendCompressedFlag <> 0 Then
                 SendCompressedLength = Compression.Compress(SendTransformBuffer, SendTransformBuffer, SendRawLength)

@@ -3,10 +3,7 @@
             If FreePointer = 0 Then Return -1
 
             For Index = 0 To FreePointer - 1
-
-                If BaseClaimedBitmap(Index) = True Then
-                    If BaseKeysArray(Index)?.Equals(Key) = True Then Return Index
-                End If
+                If BaseClaimedBitmap(Index) = True AndAlso BaseKeysArray(Index).Equals(Key) = True Then Return Index
             Next
 
             Return -1

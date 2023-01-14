@@ -1,4 +1,6 @@
-Friend Partial Class BaseSocket
+    Imports System.Threading
+
+Public Partial Class BaseSocket
         Public ReadOnly Property Available As Int32
             Get
                 If NetSocket Is Nothing Then Return 0
