@@ -3,6 +3,11 @@
     <PropertyGroup>
         <RootNamespace>Maelstrom</RootNamespace>
         <TargetFramework>netstandard2.0</TargetFramework>
+        <OptionStrict>On</OptionStrict>
     </PropertyGroup>
+
+    <ItemGroup>
+      <Folder Include="Source\" />
+    </ItemGroup>
 
 </Project>
