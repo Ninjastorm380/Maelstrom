@@ -1,5 +1,6 @@
 Imports System.Net.Sockets
 Imports System.Net
+Imports System.Runtime.CompilerServices
 
 Namespace Lightning
     Friend Partial Class Socket
@@ -69,8 +70,9 @@ Namespace Lightning
             LocalEndPoint = CType(NetSocket.LocalEndPoint, IPEndPoint)
             RemoteEndPoint = CType(NetSocket.RemoteEndPoint, IPEndPoint)
             AsyncSocketConnectedMethod(Me)
+            
         End Sub
-
+        
         Public Sub Disconnect()
             IsConnected = False
             AsyncSocketDisconnectingMethod(Me)
@@ -118,7 +120,7 @@ Namespace Lightning
                 BytesRead = 0
             End Try
                 TotalBytesRead += BytesRead : End SyncLock
-            Loop Until ReadTimeoutStopwatch.ElapsedMilliseconds >= TimeoutMS Or TotalBytesRead >= Length Or IsConnected = False
+            Loop Until IsConnected = False OrElse (ReadTimeoutStopwatch.ElapsedMilliseconds >= TimeoutMS Or TotalBytesRead >= Length)
             
             ReadTimeoutStopwatch.Reset()
             Return TotalBytesRead
@@ -143,29 +145,38 @@ Namespace Lightning
                 BytesWritten = 0 
             End Try
                 TotalBytesWritten += BytesWritten : End SyncLock
-            Loop Until WriteTimeoutStopwatch.ElapsedMilliseconds >= TimeoutMS Or TotalBytesWritten >= Length Or IsConnected = False
+            Loop Until IsConnected = False OrElse (WriteTimeoutStopwatch.ElapsedMilliseconds >= TimeoutMS Or TotalBytesWritten >= Length)
 
             WriteTimeoutStopwatch.Reset()
             Return TotalBytesWritten
         End Function
 
         Private Sub AsyncListenerMethod()
-            Do : If NetSocket.Poll(0, SelectMode.SelectRead) And IsListening = True Then
-                Dim NewSocketBase = NetSocket.Accept()
-                Dim NewSocket = New Socket()
-                AsyncSocketConnectingMethod(NewSocket)
-                NewSocket.HookupSocket(NewSocketBase)
-                AsyncSocketConnectedMethod(NewSocket) : End If
-                Threading.Thread.Yield()
+            Do
+                If NetSocket.Poll(0, SelectMode.SelectRead) And IsListening = True Then
+                    Dim NewSocketBase = NetSocket.Accept()
+                    Dim NewSocket = New Socket()
+                    AsyncSocketConnectingMethod(NewSocket)
+                    NewSocket.HookupSocket(NewSocketBase)
+                    AsyncSocketConnectedMethod(NewSocket) 
+                    Dim Watchdog As New Threading.Thread(AddressOf WatchdogMethod)
+                    Watchdog.Start(NewSocket)
+                End If : Threading.Thread.Yield()
             Loop While IsListening
         End Sub
         
+        Private Sub WatchdogMethod(SocketObject As Object)
+            Dim Socket = CType(SocketObject, Socket)
+            Do Until Socket.IsConnected = False
+                Threading.Thread.Yield()
+            Loop
+            Socket.Disconnect()
+        End Sub
+        
         Public Sub Dispose() Implements IDisposable.Dispose
-            If IsBaseDisposed = False Then NetSocket.Dispose()
+            NetSocket.Dispose()
             ReadTimeoutStopwatch.Reset()
-            ReadTimeoutStopwatch = Nothing
             WriteTimeoutStopwatch.Reset()
-            WriteTimeoutStopwatch = Nothing
             IsBaseDisposed = True
         End Sub
     End Class

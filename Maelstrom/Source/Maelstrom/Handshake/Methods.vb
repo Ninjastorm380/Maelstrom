@@ -44,7 +44,6 @@ Friend Partial Class Handshake
             
             TemporaryLocalCryptographer.TransformBlock(LocalHandshakeBuffer, LocalHandshakeTransformBuffer, 0, 128)
             Socket.Write(LocalHandshakeTransformBuffer, 0, 128, Net.Sockets.SocketFlags.None)
-            Do Until Socket.Available >= 128 : Loop
             Socket.Read(RemoteHandshakeTransformBuffer, 0, 128, Net.Sockets.SocketFlags.None)
             TemporaryRemoteCryptographer.TransformBlock(RemoteHandshakeTransformBuffer, RemoteHandshakeBuffer, 0, 128)
             

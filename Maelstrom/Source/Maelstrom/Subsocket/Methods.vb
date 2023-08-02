@@ -70,16 +70,15 @@ Friend Partial Class Subsocket : Implements IDisposable
     
     Public Sub Dispose() Implements IDisposable.Dispose
         SyncLock BufferLock
-            InternalBuffer.Dispose()
-            BaseDataWriteEncryptor.Dispose()
-            BaseDataReadDecryptor.Dispose()
-            BaseHeaderWriteEncryptor.Dispose()
-            BaseHeaderReadDecryptor.Dispose()
+            If InternalBuffer IsNot Nothing Then InternalBuffer.Dispose()
+            If BaseDataWriteEncryptor IsNot Nothing Then BaseDataWriteEncryptor.Dispose()
+            If BaseDataReadDecryptor IsNot Nothing Then BaseDataReadDecryptor.Dispose()
+            If BaseHeaderWriteEncryptor IsNot Nothing Then BaseHeaderWriteEncryptor.Dispose()
+            If BaseHeaderReadDecryptor IsNot Nothing Then BaseHeaderReadDecryptor.Dispose()
             InternalBuffer = Nothing
             InternalPackBuffer = Nothing
             BaseID = Nothing
             BaseDisposed = True
         End SyncLock
-        BufferLock = Nothing
     End Sub
 End Class

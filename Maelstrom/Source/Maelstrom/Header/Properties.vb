@@ -8,6 +8,16 @@ Friend Partial Structure Header
         End Set
     End Property
     
+    Public Property Command As UInt32
+        Get
+            Return BaseCommand
+        End Get
+        Set
+            BaseCommand = Value
+        End Set
+    End Property
+
+    
     Public Property CompressedLength As Int32
         Get
             Return BaseCompressedLength

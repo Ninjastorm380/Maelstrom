@@ -14,8 +14,8 @@ Public Partial MustInherit Class ClientBase
     End Sub
     
     Public Sub Disconnect()
-        If NetSocket.Connected = True Then
-            NetSocket.Disconnect
+        If SocketLookup(NetSocket).Connected = True Then
+            SocketLookup(NetSocket).Disconnect
         End If
     End Sub
     
@@ -25,6 +25,7 @@ Public Partial MustInherit Class ClientBase
     End Sub
     
     Private Sub SocketConnected(NewSocket As Lightning.Socket) Handles NetSocket.SocketConnected
+        SocketLookup(NewSocket).Setup(UInt32.MaxValue)
         OnLoaded(SocketLookup(NewSocket))
     End Sub
     
@@ -33,8 +34,10 @@ Public Partial MustInherit Class ClientBase
     End Sub
     
     Private Sub SocketDisconnected(NewSocket As Lightning.Socket) Handles NetSocket.SocketDisconnected
+        SocketLookup(NewSocket).Teardown(UInt32.MaxValue)
         OnUnloaded(SocketLookup(NewSocket))
         SocketLookup.Remove(NewSocket)
+        NewSocket.Dispose()
     End Sub
     
     Protected MustOverride Sub OnLoading(Socket As Socket)

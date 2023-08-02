@@ -27,7 +27,10 @@ Friend Class TestServer : Inherits ServerBase
                     Buffer(x) = 0
                 Next
                 Dim Compared as Boolean
-
+                If Socket.Add(Subsocket) = False Then Debug.Print("DEBUG - SERVER - ASYNC INSTANCE " & Subsocket & ": encryption sync failed!")
+                Socket.Compressed(Subsocket) = False
+                Socket.Encrypted(Subsocket) = False
+                
                 Console.WriteLine("DEBUG - SERVER - ASYNC INSTANCE " + Subsocket.ToString() + " - awaiting unlock...")
                 SyncLock WaitLock : End SyncLock
                 Console.WriteLine("DEBUG - SERVER - ASYNC INSTANCE " + Subsocket.ToString() + " - unlocked!") 
@@ -51,25 +54,22 @@ Friend Class TestServer : Inherits ServerBase
                     End If
                     Governor.Limit()
                 Loop
+                Socket.Remove(Subsocket)
             End Sub)
         AsyncThread.Start()
     End Sub
 
     Protected Overrides Sub OnLoading(Socket As Socket)
-
+        Console.WriteLine("DEBUG - SERVER: client connecting...")
     End Sub
     
     Protected Overrides Sub OnLoaded(Socket As Socket)
-        For Subsocket = 0 to Instances - 1
-            Socket.Add(Subsocket)
-            Socket.Compressed(Subsocket) = False
-            Socket.Encrypted(Subsocket) = False
-        Next
+        Console.WriteLine("DEBUG - SERVER: client connected.")
         
-        Console.WriteLine("DEBUG - SERVER: client has connected")
         Console.WriteLine("DEBUG - SERVER: creating async instances....") 
         SyncLock WaitLock
             For x = 0 to Instances - 1
+                Threading.Thread.Sleep(10)
                 CreateAsyncInstance(Socket,x)
                 Console.WriteLine("DEBUG - SERVER: async instance " + x.ToString() + " created.") 
             Next
@@ -78,28 +78,26 @@ Friend Class TestServer : Inherits ServerBase
     End Sub
     
     Protected Overrides Sub OnUnloading(Socket As Socket)
-        For Subsocket = 0 to Instances - 1
-            Socket.Remove(Subsocket)
-        Next
+        Console.WriteLine("DEBUG - SERVER: client disconnecting...")
     End Sub
 
     Protected Overrides Sub OnUnloaded(Socket As Socket)
-        
+        Console.WriteLine("DEBUG - SERVER: client disconnected.")
     End Sub
 
     Protected Overrides Sub OnListenerBinding()
-        
+        Console.WriteLine("DEBUG - SERVER: starting server...")
     End Sub
 
     Protected Overrides Sub OnListenerBound()
-        
+        Console.WriteLine("DEBUG - SERVER: server started.")
     End Sub
 
     Protected Overrides Sub OnListenerUnbinding()
-        
+        Console.WriteLine("DEBUG - SERVER: stopping server...")
     End Sub
 
     Protected Overrides Sub OnListenerUnbound()
-        
+        Console.WriteLine("DEBUG - SERVER: server stopped.")
     End Sub
 End Class

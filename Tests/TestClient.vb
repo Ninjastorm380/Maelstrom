@@ -27,6 +27,9 @@ Friend Class TestClient : Inherits ClientBase
                 Dim Governor as new Governor(Speed)
                 Dim Buffer(Payload.Length - 1) as Byte
                 Dim Compared as Boolean
+                If Socket.Add(Subsocket) = False Then Debug.Print("DEBUG - CLIENT - ASYNC INSTANCE " & Subsocket & ": encryption sync failed!")
+                Socket.Compressed(Subsocket) = False
+                Socket.Encrypted(Subsocket) = False
                 
                 Console.WriteLine("DEBUG - CLIENT - ASYNC INSTANCE " + Subsocket.ToString() + " - awaiting unlock...")
                 SyncLock WaitLock : End SyncLock
@@ -50,40 +53,36 @@ Friend Class TestClient : Inherits ClientBase
                     End If
                     Governor.Limit()
                 Loop
+                Socket.Remove(Subsocket)
             End Sub)
         AsyncThread.Start()
     End Sub
     
     Protected Overrides Sub OnLoading(Socket As Maelstrom.Socket)
-
+        Console.WriteLine("DEBUG - CLIENT: connecting...") 
     End Sub
     
     Protected Overrides Sub OnLoaded(Socket As Maelstrom.Socket)
-        For Subsocket = 0 to Instances - 1
-            Socket.Add(Subsocket)
-            Socket.Compressed(Subsocket) = False
-            Socket.Encrypted(Subsocket) = False
-        Next
-        
-        Console.WriteLine("DEBUG - CLIENT: connected to server")
+        Console.WriteLine("DEBUG - CLIENT: connected.") 
         Console.WriteLine("DEBUG - CLIENT: creating async instances....") 
         SyncLock WaitLock
             For x = 0 to Instances - 1
+                Threading.Thread.Sleep(10)
                 CreateAsyncInstance(Socket,x)
                 Console.WriteLine("DEBUG - CLIENT: async instance " + x.ToString() + " created.") 
+                
             Next
         End SyncLock
         Console.WriteLine("DEBUG - CLIENT: all async instances created.") 
+        
     End Sub
 
     Protected Overrides Sub OnUnloading(Socket As Maelstrom.Socket)
-        For Subsocket = 0 to Instances - 1
-            Socket.Remove(Subsocket)
-        Next
+        Console.WriteLine("DEBUG - CLIENT: disconnecting...") 
     End Sub
 
     Protected Overrides Sub OnUnloaded(Socket As Maelstrom.Socket)
-        
+        Console.WriteLine("DEBUG - CLIENT: disconnected.") 
     End Sub
 
 End Class

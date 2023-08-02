@@ -26,13 +26,34 @@ Namespace Lightning
         
         Public ReadOnly Property Connected As System.Boolean
             Get
-                If NetSocket Is Nothing Then Return False
-                If IsConnected = False Then Return False
-                If NetSocket.Connected = False Then Return False
+                If NetSocket Is Nothing Then 
+                    IsConnected = False
+                    Return False
+                End If
+                If IsConnected = False Then
+                    IsConnected = False
+                    Return False
+                End If
+                If NetSocket.Connected = False Then
+                    IsConnected = False
+                    Return False
+                End If
+                
                 SyncLock ReadLock : Try
-                    DataAvailable = NetSocket.Poll(0, Net.Sockets.SelectMode.SelectRead)
+                    DataAvailable = (NetSocket.Poll(1, Net.Sockets.SelectMode.SelectRead))
                     DataNotAvailable = (NetSocket.Available = 0)
-                    IsConnected = Not (DataAvailable = True AndAlso DataNotAvailable = True)
+                    
+                    If DataAvailable = True And DataNotAvailable = True Then
+                        IsConnected = False
+                    Else If DataAvailable = True And DataNotAvailable = False Then 
+                        IsConnected = True : Debug.Print("State B")
+                    Else If DataAvailable = False And DataNotAvailable = True Then 
+                        IsConnected = True : Debug.Print("State C")
+                    Else If DataAvailable = False And DataNotAvailable = False Then 
+                        IsConnected = True : Debug.Print("State D")
+                    End If
+                    
+                    'IsConnected = Not (NetSocket.Poll(1, Net.Sockets.SelectMode.SelectRead) AndAlso (NetSocket.Available = 0))
                 Catch NetException as Net.Sockets.SocketException
                     IsConnected = False
                 End Try : End SyncLock

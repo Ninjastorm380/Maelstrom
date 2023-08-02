@@ -1,3 +1,5 @@
+Imports Maelstrom.Lightning
+
 Public Partial Class Socket
     Private ReadOnly BaseSocket As Lightning.Socket
     Private ReadOnly Subsockets As Lightning.Dictionary(Of UInt32, Subsocket)
@@ -17,4 +19,5 @@ Public Partial Class Socket
     Private ReadLock As Object
     Private WriteLock As Object
     Private BaseDisposed As Boolean
+    
 End Class
