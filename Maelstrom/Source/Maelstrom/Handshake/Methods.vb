@@ -17,8 +17,9 @@ Friend Partial Class Handshake
         TemporaryCryptoRandom.GetBytes(LocalHeaderRandomData)
         TemporaryCryptoRandom.GetBytes(LocalDataRandomData)
         TemporaryCryptoRandom.Dispose()
+        
+        Dim WatchDog As Stopwatch = Stopwatch.StartNew()
         Do
-            CurrentSyncAttempt += SyncIncrement
             TemporaryUTCTime = DateTime.UtcNow
 
             TemporaryRandom = New Lightning.Random({
@@ -56,15 +57,13 @@ Friend Partial Class Handshake
                 Buffer.BlockCopy(RemoteHandshakeBuffer, 80, RemoteDataRandomData, 0, 48)
             ElseIF SignatureDataIntact = True And SignatureVersionMatched = False
                 CurrentSyncResult = 2
-                Threading.Thread.Sleep(10)
             Else
                 CurrentSyncResult = 1
-                Threading.Thread.Sleep(60)
             End If
             
             TemporaryLocalCryptographer.Dispose()
             TemporaryRemoteCryptographer.Dispose()
-        Loop Until CurrentSyncAttempt >= MaxSyncAttempts Or CurrentSyncResult = 0
+        Loop Until WatchDog.Elapsed.Milliseconds >= MaxSyncDuration Or CurrentSyncResult = 0
         Return CType(CurrentSyncResult, Result)
     End Function
     

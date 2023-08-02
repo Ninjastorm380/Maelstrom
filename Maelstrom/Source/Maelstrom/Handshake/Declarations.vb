@@ -14,10 +14,9 @@ Friend Partial Class Handshake
     Private LocalHandshakeTransformBuffer As Byte()
     Private RemoteHandshakeTransformBuffer As Byte()
     
-    Private Const MaxSyncAttempts As UInt32 = 3
+    Private Const MaxSyncDuration As UInt32 = 1000
     Private CurrentSyncAttempt As UInt32 = 0
     Private CurrentSyncResult As UInt32 = 3
-    Private Const SyncIncrement As UInt32 = 1
     Private SignatureDataIntact As Boolean = False
     Private SignatureVersionMatched As Boolean = False
 End Class
