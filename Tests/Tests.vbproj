@@ -4,10 +4,17 @@
         <OutputType>Exe</OutputType>
         <RootNamespace>Tests</RootNamespace>
         <TargetFramework>net7.0</TargetFramework>
+        <OptionStrict>On</OptionStrict>
+    </PropertyGroup>
+
+    <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+      <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+      <DebugType>none</DebugType>
     </PropertyGroup>
 
     <ItemGroup>
       <ProjectReference Include="..\Maelstrom\Maelstrom.vbproj" />
     </ItemGroup>
+
 
 </Project>

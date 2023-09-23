@@ -1,0 +1,1 @@
+Friend Enum Result : Ok = 0 : ValidationFailure = 1 : End Enum
