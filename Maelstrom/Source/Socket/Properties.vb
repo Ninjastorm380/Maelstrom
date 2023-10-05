@@ -1,4 +1,8 @@
 Public Partial Class Socket
+    Public ReadOnly Property SyncResult As Result
+    Public ReadOnly Property RemoteIdentificationToken As Byte()
+    Public ReadOnly Property LocalIdentificationToken As Byte()
+    
     Public ReadOnly Property Available(ByVal Subsocket As UInt32) As Boolean
         Get 
             If Connected = False Then Return False 

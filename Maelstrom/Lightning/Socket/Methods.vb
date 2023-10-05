@@ -71,7 +71,7 @@ Namespace Lightning
         Public Function Read(ByRef Buffer As Byte(), Offset As Int32, Length As Int32, Flags As Net.Sockets.SocketFlags, ByRef Result As Net.Sockets.SocketError) As Int32
             SyncLock ReadLock
                 Dim TotalRead, InstanceRead As Int32 : Do
-                    If IsConnected = True AndAlso NetSocket.Poll(1, Net.Sockets.SelectMode.SelectRead) = True
+                    If Connected = True AndAlso NetSocket.Poll(1, Net.Sockets.SelectMode.SelectRead) = True
                         InstanceRead = NetSocket.Receive(Buffer, Offset + TotalRead, Length - TotalRead, Flags, Result)
                     End If
                     If InstanceRead > 0 Then
@@ -88,7 +88,7 @@ Namespace Lightning
             SyncLock WriteLock
                 Dim TotalWritten, InstanceWritten As Int32
                 Do
-                    If IsConnected = True AndAlso NetSocket.Poll(1, Net.Sockets.SelectMode.SelectWrite) = True
+                    If Connected = True AndAlso NetSocket.Poll(1, Net.Sockets.SelectMode.SelectWrite) = True
                         InstanceWritten = NetSocket.Send(Buffer, Offset + TotalWritten, Length - TotalWritten, Flags, Result)
                     End If
                     If InstanceWritten > 0 Then

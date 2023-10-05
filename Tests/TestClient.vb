@@ -157,8 +157,8 @@ Public Class TestClient : Inherits Maelstrom.BaseClient
         Console.WriteLine("  Client: is now disconnecting from a server")
     End Sub
 
-    Protected Overrides Sub OnDrop(Endpoint As Net.IPEndPoint)
-        Console.WriteLine("  Client: is now disconnecting from an invalid server")
+    Protected Overrides Sub OnDrop(Socket As Maelstrom.Socket)
+        Console.WriteLine("  Client: is now disconnecting from an invalid server. reason: " & Socket.SyncResult.ToString() & ", remote identification token: " & Convert.ToBase64String(Socket.RemoteIdentificationToken))
     End Sub
     
     Private Sub Kickoff(Socket As Maelstrom.Socket)
@@ -173,8 +173,6 @@ Public Class TestClient : Inherits Maelstrom.BaseClient
     
     Private Sub Worker(Socket As Maelstrom.Socket, Subsocket As UInt32)
         Dim Buffer(Payload.Length - 1) as Byte
-        'Socket.Compressed(Subsocket) = False
-        'Socket.Encrypted(Subsocket) = False
         Socket.Create(Subsocket)
         Socket.Write(Subsocket, Payload)
         Dim Governor As New Lightning.Governor(WorkerSpeed)
@@ -189,6 +187,7 @@ Public Class TestClient : Inherits Maelstrom.BaseClient
             End If
             Governor.Limit()
         Loop
+        Console.WriteLine("  Client:   networked worker " & Subsocket & " operating on subsocket " & Subsocket & " at a frequency of " & WorkerSpeed & "hz is now exiting")
     End Sub
     
     Private Function Validate(A As Byte(), B As Byte(), Length As Int32) As Boolean

@@ -1,5 +1,8 @@
 Public Partial Class Socket : Implements IDisposable
-    Friend Sub New(Socket As Lightning.Socket, Transform As Transform)
+    Friend Sub New(Socket As Lightning.Socket, Transform As Transform, Result As Result, LocalToken As Byte(), RemoteToken As Byte())
+        Me.SyncResult = Result
+        LocalIdentificationToken = LocalToken
+        RemoteIdentificationToken = RemoteToken
         BaseSocket = Socket
         TransformReference = Transform
         Subsockets = New Dictionary(Of UInteger, Subsocket)
@@ -147,7 +150,7 @@ Public Partial Class Socket : Implements IDisposable
             Array.Clear(WriteHeaderBuffer,  0, 16) : WriteHeaderBuffer  = Nothing
             Array.Clear(BufferHeaderBuffer, 0, 32) : BufferHeaderBuffer = Nothing
             For Each Entry In Subsockets : Entry.Value.Dispose : Next : Subsockets.Clear : Subsockets = Nothing
-            TransformReference.Dispose : TransformReference = Nothing
+            If TransformReference IsNot Nothing Then TransformReference.Dispose : TransformReference = Nothing
         End SyncLock : End SyncLock : End SyncLock
         'ReadLock = Nothing : WriteLock = Nothing : BufferLock = Nothing
     End Sub

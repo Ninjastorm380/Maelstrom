@@ -3,6 +3,21 @@ Imports System.Runtime.CompilerServices
 Imports Maelstrom.Lightning
 
 Friend Partial Class Handshake
+    Friend Sub New(IdentityTokens As Byte()(), IdentityToken As Byte())
+        Me.LocalIdentityTokens.Clear()
+        Me.LocalIdentityTokens.AddRange(IdentityTokens)
+        LocalIdentityToken = IdentityToken
+    End Sub
+    
+    Friend Function GetRemoteIdentificationToken() As Byte()
+        If SyncResult = Result.NotReady Then Return Nothing
+        Return RemoteIdentityToken
+    End Function
+    
+    Friend Function GetLocalIdentificationToken() As Byte()
+        If SyncResult = Result.NotReady Then Return Nothing
+        Return LocalIdentityToken
+    End Function
     
     Friend Function Perform(Socket As Lightning.Socket) As Result
         Array.Resize(LocalTransformBuffer, 516)
@@ -12,10 +27,10 @@ Friend Partial Class Handshake
         Array.Resize(LocalDataSeed, 256)
         Array.Resize(RemoteHeaderSeed, 256)
         Array.Resize(RemoteDataSeed, 256)
-        
+        Array.Resize(RemoteIdentityToken, IdentityTokenSize)
         Timeout = TimeSpan.FromMilliseconds(1000)
-        SyncResult = Result.ValidationFailure
-        Watchdog = Stopwatch.StartNew()
+        SyncResult = Result.NotReady
+        Watchdog = New Stopwatch
         'Generate local public and private keys.
         Dim LocalEncryptionExchange As New KeyExchange
         Dim LocalDecryptionExchange As New KeyExchange
@@ -41,11 +56,16 @@ Friend Partial Class Handshake
         Buffer.BlockCopy(LocalDecryptionPublicKeyBuffer, 0, LocalTransformBuffer, 258, LocalDecryptionPublicKeyBuffer.Length)
         
         'Exchange data.
+        Watchdog.Restart()
         LambdaThread(Of Lightning.Socket, Byte()).Start(AddressOf AsyncSend, Socket, LocalTransformBuffer)
         Do Until Socket.Available > 0 Or Socket.Connected = False Or Watchdog.Elapsed >= Timeout
             LambdaThread.Yield()
         Loop
-        Socket.Read(RemoteTransformBuffer, 0, 516, Net.Sockets.SocketFlags.None, Nothing)
+        Dim ReadAmountA As Int32 = Socket.Read(RemoteTransformBuffer, 0, RemoteTransformBuffer.Length, Net.Sockets.SocketFlags.None, Nothing)
+        If ReadAmountA < RemoteTransformBuffer.Length OrElse Watchdog.Elapsed >= Timeout  Then
+            If SyncResult = Result.NotReady And Socket.Connected = True Then SyncResult = Result.TransferFailure
+            If SyncResult = Result.NotReady And Socket.Connected = False Then SyncResult = Result.SocketDead
+        End If
         
         'Unpack remote padding values.
         Dim RemoteEncryptionTokenPaddingLength As Byte = RemoteTransformBuffer(0)
@@ -75,8 +95,9 @@ Friend Partial Class Handshake
         Dim EncryptionSeed As Byte() = EncryptionSeedValue.ToByteArray()
         Dim DecryptionSeed As Byte()  = DecryptionSeedValue.ToByteArray()
         
+        'Derive encryption logic from secret shared seeds.
         Dim AESEncryptor As Security.Cryptography.Aes = Security.Cryptography.Aes.Create()
-        'Derive encryption seeds from secret shared seeds.
+        AESEncryptor.Padding = Security.Cryptography.PaddingMode.None
         With New Random(EncryptionSeed)
             .ByteNext(LocalHeaderSeed)
             .ByteNext(LocalDataSeed)
@@ -84,8 +105,9 @@ Friend Partial Class Handshake
             .ByteNext(AESEncryptor.IV)
         End With
         
+        'Derive decryption logic from secret shared seeds.
         Dim AESDecryptor As Security.Cryptography.Aes = Security.Cryptography.Aes.Create()
-        'Derive decryption seeds from secret shared seeds.
+        AESDecryptor.Padding = Security.Cryptography.PaddingMode.None
         With New Random(DecryptionSeed)
             .ByteNext(RemoteHeaderSeed)
             .ByteNext(RemoteDataSeed)
@@ -93,40 +115,66 @@ Friend Partial Class Handshake
             .ByteNext(AESDecryptor.IV)
         End With
         
+        'Prepare for secure validation of the newly established connection.
         Dim AESEncryptorTransform As Security.Cryptography.ICryptoTransform = AESEncryptor.CreateEncryptor()
         Dim AESDecryptorTransform As Security.Cryptography.ICryptoTransform = AESDecryptor.CreateDecryptor()
+        Array.Resize(LocalTransformBuffer, HeaderReference.Length + IdentityTokenSize)
+        Array.Resize(RemoteTransformBuffer, HeaderReference.Length + IdentityTokenSize)
         
-        Array.Resize(LocalTransformBuffer, MaelstromHeaderReference.Length)
-        Array.Resize(RemoteTransformBuffer, MaelstromHeaderReference.Length)
+        'Pack up validation data.
+        Buffer.BlockCopy(HeaderReference, 0, LocalTransformBuffer, 0, HeaderReference.Length)
+        Buffer.BlockCopy(LocalIdentityToken, 0, LocalTransformBuffer, HeaderReference.Length, IdentityTokenSize)
         
-        Buffer.BlockCopy(MaelstromHeaderReference, 0, LocalTransformBuffer, 0, MaelstromHeaderReference.Length)
-        AESEncryptorTransform.TransformBlock(LocalTransformBuffer, 0, MaelstromHeaderReference.Length, LocalTransformBuffer, 0)
+        'Securely exchange validation data.
+        AESEncryptorTransform.TransformBlock(LocalTransformBuffer, 0, LocalTransformBuffer.Length, LocalTransformBuffer, 0)
+        Watchdog.Restart()
         LambdaThread(Of Lightning.Socket, Byte()).Start(AddressOf AsyncSend, Socket, LocalTransformBuffer)
         Do Until Socket.Available > 0 Or Socket.Connected = False Or Watchdog.Elapsed >= Timeout
             LambdaThread.Yield()
         Loop
-        Socket.Read(RemoteTransformBuffer, 0, MaelstromHeaderReference.Length, Net.Sockets.SocketFlags.None, Nothing)
-        AESDecryptorTransform.TransformBlock(RemoteTransformBuffer, 0, MaelstromHeaderReference.Length, RemoteTransformBuffer, 0)
+        Dim ReadAmountB As Int32 = Socket.Read(RemoteTransformBuffer, 0, RemoteTransformBuffer.Length, Net.Sockets.SocketFlags.None, Nothing)
+        If ReadAmountB < RemoteTransformBuffer.Length OrElse Watchdog.Elapsed >= Timeout  Then
+            If SyncResult = Result.NotReady And Socket.Connected = True Then SyncResult = Result.TransferFailure
+            If SyncResult = Result.NotReady And Socket.Connected = False Then SyncResult = Result.SocketDead
+        End If
+        AESDecryptorTransform.TransformBlock(RemoteTransformBuffer, 0, RemoteTransformBuffer.Length, RemoteTransformBuffer, 0)
         
-        If Watchdog.Elapsed >= Timeout Then
-            SyncResult = Result.ValidationFailure
-        Else
-            If Validate(RemoteTransformBuffer, MaelstromHeaderReference, MaelstromHeaderReference.Length) = True Then
-                SyncResult = Result.Ok
+        'Perform validation.
+        If Compare(RemoteTransformBuffer, HeaderReference, HeaderReference.Length) = True Then
+            Buffer.BlockCopy(RemoteTransformBuffer, HeaderReference.Length, RemoteIdentityToken, 0, IdentityTokenSize)
+            If LocalIdentityTokens.Count > 0 
+                For Each Item In LocalIdentityTokens
+                    Dim Compared As Boolean = Compare(RemoteIdentityToken, Item, IdentityTokenSize)
+                    If Compared = True And Socket.ClientSide = True
+                        If SyncResult = Result.NotReady Then SyncResult = Result.Ok 'LocalIdentityTokens functions as a trust-list on a client. Proceed if remote token is found within it.
+                    Else If Compared = False And Socket.ClientSide = False
+                        If SyncResult = Result.NotReady Then SyncResult = Result.Ok 'LocalIdentityTokens functions as a deny-list on a server. Proceed if remote token is not found within it.
+                    Else
+                        If SyncResult = Result.NotReady Then SyncResult = Result.IdentityFailure 'Identity is untrustworthy. Do not proceed.
+                    End If
+                Next
             Else
-                SyncResult = Result.ValidationFailure
+                If Socket.ClientSide = True
+                    If SyncResult = Result.NotReady Then SyncResult = Result.IdentityFailure 'Do not proceed if LocalIdentityTokens list is empty on a client.
+                Else
+                    If SyncResult = Result.NotReady Then SyncResult = Result.Ok 'proceed if LocalIdentityTokens list is empty on a server.
+                End If
             End If
+        Else
+            If SyncResult = Result.NotReady Then SyncResult = Result.ValidationFailure
         End If
         
         AESDecryptorTransform.Dispose()
         AESEncryptorTransform.Dispose()
         AESDecryptor.Dispose()
         AESEncryptor.Dispose()
+        
+        If Socket.Connected = False And SyncResult = Result.Ok Then SyncResult = Result.SocketDead
         Return SyncResult
     End Function
     
     Friend Function GetTransform() As Transform
-        If SyncResult = Result.ValidationFailure Then Return Nothing
+        If SyncResult <> Result.Ok Then Return Nothing
         Return New Transform(LocalHeaderSeed, RemoteHeaderSeed, LocalDataSeed, RemoteDataSeed)
     End Function
     
@@ -135,11 +183,18 @@ Friend Partial Class Handshake
     End Sub
     
     <MethodImpl(MethodImplOptions.NoInlining And MethodImplOptions.NoOptimization)>
-    Private Function Validate(A As Byte(), B As Byte(), Length As Int32) As Boolean
-        Dim Validated = True
+    Private Function Compare(A As Byte(), B As Byte(), Length As Int32) As Boolean
+        Dim Equals = True
         For Index = 0 To Length - 1
-            If A(Index) <> B(Index) Then Validated = False
+            If A(Index) <> B(Index) Then Equals = False
         Next
-        Return Validated
+        Return Equals
+    End Function
+    
+    Public Shared Function GenerateToken() As Byte()
+        Dim NewToken(IdentityTokenSize - 1) As Byte
+        Dim Noise As Security.Cryptography.RandomNumberGenerator = Security.Cryptography.RandomNumberGenerator.Create()
+        Noise.GetBytes(NewToken) : Noise.Dispose()
+        Return NewToken
     End Function
 End Class

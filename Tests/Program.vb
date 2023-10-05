@@ -9,7 +9,8 @@ Module Program
     Private TestEndpoint As Net.IPEndPoint = Nothing
     Private TestWorkerCount As UInt32 = Nothing
     Private TestWorkerFrequency As Double = Nothing
-    
+    Private TestServerID As String
+    Private TestServerIDRaw As Byte()
     Sub Main(Args As String())
         If Args.Length >= 4 Then
             Dim Valid As Boolean = True
@@ -17,6 +18,14 @@ Module Program
             If Net.IPEndPoint.TryParse(Args(1), TestEndpoint) = False Then Valid = False
             If UInt32.TryParse(Args(2), TestWorkerCount) = False Then Valid = False
             If Double.TryParse(Args(3), TestWorkerFrequency) = False Then Valid = False
+            If TestMode = "client"
+                If Args.Length >= 5
+                    TestServerID = Args(4)
+                    TestServerIDRaw = Convert.FromBase64String(TestServerID)
+                Else 
+                    TestServerID = ""
+                End If
+            End If
             If Valid = False Then
                 Console.WriteLine("Invalid parameters were provided, switching to interactive mode...")
                 DoInteractiveInputs()
@@ -33,6 +42,7 @@ Module Program
         TestServer.WorkerSpeed = TestWorkerFrequency
         
         If TestMode.ToLower() = "client"
+            If TestServerID <> "" Then TestClient.AddTrustedToken(TestServerIDRaw)
             TestClient.Connect(TestEndpoint)
             Console.Read()
             If TestClient.Connected = True Then TestClient.Disconnect()
@@ -41,13 +51,13 @@ Module Program
             Console.Read()
             TestServer.Deafen()
         ElseIf TestMode.ToLower() = "both"
+            TestClient.AddTrustedToken(TestServer.IdentificationToken)
             TestServer.Listen(TestEndpoint)
             TestClient.Connect(TestEndpoint)
             Console.Read()
-            If TestClient.Connected = True Then TestClient.Disconnect()
+            TestClient.Disconnect()
             TestServer.Deafen()
         End If
-        'Console.Read()
     End Sub
     
     Private Sub DoInteractiveInputs()

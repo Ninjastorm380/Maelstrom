@@ -44,11 +44,11 @@ Namespace Lightning
                     'IsConnected = Not (NetSocket.Poll(1, Net.Sockets.SelectMode.SelectRead) AndAlso (NetSocket.Available = 0))
                     If DataAvailable = True And DataNotAvailable = True Then
                         IsConnected = False
-                    Else If DataAvailable = True And DataNotAvailable = False Then
+                    Else If DataAvailable = True And DataNotAvailable = False And NetSocket.Connected = True Then
                         IsConnected = True
-                    Else If DataAvailable = False And DataNotAvailable = True Then
+                    Else If DataAvailable = False And DataNotAvailable = True And NetSocket.Connected = True Then
                         IsConnected = True
-                    Else If DataAvailable = False And DataNotAvailable = False Then
+                    Else If DataAvailable = False And DataNotAvailable = True And NetSocket.Connected = True Then
                         IsConnected = True
                     End If
                 End SyncLock
